@@ -1,23 +1,23 @@
 package deque;
 
 public interface Deque<Link> {
-    public void addFirst(Link x);
+    void addFirst(Link x);
 
-    public void addLast(Link x);
+    void addLast(Link x);
 
-    public Link removeFirst();
+    Link removeFirst();
 
-    public Link removeLast();
+    Link removeLast();
 
-    public Link getFirst();
+    Link getFirst();
 
-    public Link getLast();
+    Link getLast();
 
-    public boolean isEmpty();
+    boolean isEmpty();
 
-    public int size();
+    int size();
 
-    public void printDeque();
+    void printDeque();
 
-    public Link get(int index);
+    Link get(int index);
 }
