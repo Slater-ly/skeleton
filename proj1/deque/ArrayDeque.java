@@ -158,6 +158,9 @@ public class ArrayDeque<Link> implements Deque<Link>{
         check();
         Link x = null;
         if(!isEmpty()){
+            if(startIndex == items.length && items[startIndex - 1] == null){
+                startIndex = 0;
+            }
             x = getFirst();
             items[startIndex] = null;
             startIndex = startIndex + 1;
@@ -172,6 +175,9 @@ public class ArrayDeque<Link> implements Deque<Link>{
         check();
         Link x = null;
         if(!isEmpty()){
+            if(endIndex == 0 && items[endIndex] == null){
+                endIndex = items.length - 1;
+            }
             x = getLast();
             items[endIndex] = null;
             endIndex = endIndex > 0 ? (endIndex - 1) : endIndex;
@@ -226,13 +232,15 @@ public class ArrayDeque<Link> implements Deque<Link>{
     @Override
     public void printDeque() {
         int i;
-        for(i = startIndex; i <= items.length && items[i] != null; i = i + 1){
+        for(i = startIndex; i < items.length && items[i] != null; i = i + 1){
             System.out.print(items[i] + " ");
         }
         i = 0;
 //        System.out.print(" ");
-        for(i = 0; i <= endIndex; i = i + 1){
-            System.out.print(items[i] + " ");
+        if(endIndex != items.length - 1 && endIndex != size - 1){
+            for(i = 0; i <= endIndex; i = i + 1){
+                System.out.print(items[i] + " ");
+            }
         }
         System.out.println();
     }
@@ -241,7 +249,24 @@ public class ArrayDeque<Link> implements Deque<Link>{
      */
     @Override
     public Link get(int index) {
-        return items[index];
+        Link x = null;
+        int newIndex = 0;
+        int length = endIndex + items.length - startIndex;
+        if(length > index){
+            if(startIndex == 0 && endIndex != 0){
+                x = items[index];
+            }
+            else{
+                // 如果是
+                if(index <= items.length - startIndex){
+                    x = items[startIndex + index];
+                }
+                else{
+                    x = items[index - (items.length - startIndex)];
+                }
+            }
+        }
+        return x;
     }
 
     public static void main(String[] args) {
@@ -253,7 +278,7 @@ public class ArrayDeque<Link> implements Deque<Link>{
         long start = System.currentTimeMillis();
         for(int i = 0; i < 25; ++ i){
             a.addFirst(i);
-//            a.addLast(i);
+            a.addLast(i);
         }
 //        for(int i = 0; i < 25; ++ i){
 //            a.addLast(i);
@@ -261,11 +286,12 @@ public class ArrayDeque<Link> implements Deque<Link>{
 //        }
         System.out.println(RamUsageEstimator.humanSizeOf(a));
         long start1 = System.currentTimeMillis();
-        for(int i = 0; i < 50; ++ i){
+        a.printDeque();
+        for(int i = 0; i < 48; ++ i){
 //            System.out.println(i + "s");
             System.out.println(a.removeLast());
-//            System.out.println(a.removeFirst());
-//            System.out.println(a.removeLast() + "..." + a.removeFirst());
+            System.out.println(a.removeFirst());
+            System.out.println(a.removeLast() + "..." + a.removeFirst());
 //            as.removeFirst();
         }
 //        System.out.println(RamUsageEstimator.humanSizeOf(a));
