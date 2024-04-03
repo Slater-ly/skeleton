@@ -1,6 +1,6 @@
 package deque;
 
-public interface Deque<Link> {
+public interface Deque<Link>  {
     void addFirst(Link x);
 
     void addLast(Link x);

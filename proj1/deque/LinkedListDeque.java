@@ -1,7 +1,5 @@
 package deque;
 
-import org.apache.lucene.util.RamUsageEstimator;
-
 import java.util.*;
 
 public class LinkedListDeque<Link> implements Iterable<Link>, Deque<Link> {
@@ -41,10 +39,10 @@ public class LinkedListDeque<Link> implements Iterable<Link>, Deque<Link> {
 
 
     private class StuffNode {
-        public Link item;
-        public StuffNode next, last;
+        private Link item;
+        private StuffNode next, last;
 
-        public StuffNode(Link f, StuffNode l, StuffNode n) {
+        private StuffNode(Link f, StuffNode l, StuffNode n) {
             item = f;
             next = n;
             last = l;
@@ -128,12 +126,12 @@ public class LinkedListDeque<Link> implements Iterable<Link>, Deque<Link> {
         return size == 0;
     }
 
-    private int GetSize() {
+    private int getSize() {
         return size;
     }
 
     public int size() {
-        return GetSize();
+        return getSize();
     }
 
     public void printDeque() {
@@ -147,7 +145,7 @@ public class LinkedListDeque<Link> implements Iterable<Link>, Deque<Link> {
 
     public Link get(int index) {
         int countT = 0;
-        Link Return = null;
+        Link RE = null;
         StuffNode p = null;
         if (index * 2 < size) {
             p = sentinel.next;
@@ -157,14 +155,17 @@ public class LinkedListDeque<Link> implements Iterable<Link>, Deque<Link> {
 
         for (; p.item != null; p = p.next) {
             if (countT == index) {
-                Return = p.item;
+                RE = p.item;
                 break;
             }
             countT += 1;
         }
-        return Return;
+        return RE;
     }
 
+    private Link getRecursive(int index) {
+        return getRecursiveHelper(sentinel.next, index);
+    }
 
     private Link getRecursiveHelper(StuffNode p, int index) {
         if (p == null || p.item == null) {
@@ -174,27 +175,5 @@ public class LinkedListDeque<Link> implements Iterable<Link>, Deque<Link> {
             return p.item;
         }
         return getRecursiveHelper(p.next, index - 1);
-    }
-
-    public static void main(String[] args) {
-        Deque<Integer> L = new LinkedListDeque<>();
-        int k = 10000000;
-        while (k > 0) {
-            L.addFirst(k);
-            L.addLast(k);
-            k -= 1;
-        }
-        System.out.println(RamUsageEstimator.humanSizeOf(L));
-        System.out.println(L.get(10));
-        k = 10000000;
-
-        while (k > 0) {
-            L.removeFirst();
-            L.removeLast();
-            k -= 1;
-        }
-        System.out.println(RamUsageEstimator.humanSizeOf(L));
-//        System.out.println(((LinkedListDeque<Integer>) L).getRecursive(10));
-//        L.printDeque();
     }
 }

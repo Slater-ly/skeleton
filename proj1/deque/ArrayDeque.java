@@ -1,33 +1,69 @@
 package deque;
 
-import org.apache.lucene.util.RamUsageEstimator;
+import java.util.Iterator;
 
-public class ArrayDeque<Link> implements Deque<Link> {
-
+public class ArrayDeque<Link> implements Deque<Link>, Iterable<Link> {
     Link[] items;
     int size = 0;
     int startIndex = -1;
     int endIndex = -1;
-    boolean JustAddFirst = true;
+    boolean justAddFirst = true;
+
+    /**
+     * @return
+     */
+    @Override
+    public Iterator<Link> iterator() {
+        return new myIterator();
+    }
+
+    private class myIterator implements Iterator<Link> {
+        private int count = 0;
+        private int cou = 0;
+
+        /**
+         * @return
+         */
+        @Override
+        public boolean hasNext() {
+            count = count + 1;
+            return !(size >= count);
+        }
+
+        /**
+         * @return
+         */
+        @Override
+        public Link next() {
+            Link x;
+            if (cou <= items.length - startIndex) {
+                x = items[startIndex + cou];
+            } else {
+                x = items[cou - (items.length - startIndex)];
+            }
+            cou = cou + 1;
+            return x;
+        }
+    }
 
     public ArrayDeque() {
         items = (Link[]) new Object[8];
     }
 
-    private void recover(boolean Flag) {
+    private void recover(boolean FLAG) {
         boolean flag = false;
 
-        int t = Flag ? (size * 2) : size + 1;
+        int t = FLAG ? (size * 2) : size + 1;
         Link[] a = (Link[]) new Object[t];
         //
         if (startIndex < endIndex && startIndex != 0) {
             System.arraycopy(items, startIndex, a, 0, endIndex - startIndex + 1);
             flag = true;
         } else {
-            if (!Flag || endIndex + 1 == startIndex || endIndex + 1 == size) {
+            if (!FLAG || endIndex + 1 == startIndex || endIndex + 1 == size) {
                 endIndex = endIndex + 1;
             }
-            if (endIndex == size && JustAddFirst) {
+            if (endIndex == size && justAddFirst) {
                 System.arraycopy(items, 0, a, endIndex, endIndex);
                 startIndex = endIndex;
                 endIndex = a.length - 1;
@@ -39,11 +75,12 @@ public class ArrayDeque<Link> implements Deque<Link> {
             endIndex = endIndex - 1;
         }
         if (startIndex != 0 && startIndex > endIndex) {
-            System.arraycopy(items, startIndex, a, a.length - (items.length - startIndex), items.length - startIndex);
+            int temp = items.length - startIndex;
+            System.arraycopy(items, startIndex, a, a.length - temp, temp);
             flag = true;
         }
         if (flag) {
-            if (Flag) {
+            if (FLAG) {
                 startIndex = size + startIndex;
             } else {
                 if (startIndex > endIndex) {
@@ -87,7 +124,7 @@ public class ArrayDeque<Link> implements Deque<Link> {
      */
     @Override
     public void addLast(Link x) {
-        JustAddFirst = false;
+        justAddFirst = false;
         if (endIndex + 1 == startIndex || endIndex >= items.length) {
             recover(true);
         }
@@ -149,8 +186,8 @@ public class ArrayDeque<Link> implements Deque<Link> {
         }
         return x;
     }
-
     /**/
+
     private void check() {
         if (items.length > 4 * size && size > 2) {
             recover(false);
@@ -227,19 +264,7 @@ public class ArrayDeque<Link> implements Deque<Link> {
     }
 
     public static void main(String[] args) {
-        ArrayDeque<Integer> a = new ArrayDeque<>();
-        for (int i = 0; i < 25; ++i) {
-            a.addFirst(i);
-            a.addLast(i);
-        }
-        System.out.println(RamUsageEstimator.humanSizeOf(a));
-        a.printDeque();
-        for (int i = 0; i < 48; ++i) {
-            System.out.println(a.removeLast());
-            System.out.println(a.removeFirst());
-            System.out.println(a.removeLast() + "..." + a.removeFirst());
-        }
-        System.out.println(a.size);
-
+        ArrayDeque<Integer> sao = new ArrayDeque<>();
+        Iterator<Integer> test = sao.iterator();
     }
 }
