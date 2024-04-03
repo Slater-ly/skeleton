@@ -197,7 +197,6 @@ public class ArrayDeque<Link> implements Deque<Link>, Iterable<Link> {
     /**
      *
      */
-    @Override
     public Link getFirst() {
         return items[startIndex];
     }
@@ -205,7 +204,6 @@ public class ArrayDeque<Link> implements Deque<Link>, Iterable<Link> {
     /**
      *
      */
-    @Override
     public Link getLast() {
         return items[endIndex];
     }

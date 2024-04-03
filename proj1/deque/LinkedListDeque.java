@@ -69,14 +69,6 @@ public class LinkedListDeque<Link> implements Iterable<Link>, Deque<Link> {
         size = 1;
     }
 
-    @Override
-    public String toString() {
-        return "SLList{" +
-                "sentinel=" + sentinel +
-                ", size=" + size +
-                '}';
-    }
-
     public void addFirst(Link x) {
         StuffNode newNode = new StuffNode(x, null, null);
         StuffNode front = sentinel.next;
@@ -163,7 +155,7 @@ public class LinkedListDeque<Link> implements Iterable<Link>, Deque<Link> {
         return RE;
     }
 
-    private Link getRecursive(int index) {
+    public Link getRecursive(int index) {
         return getRecursiveHelper(sentinel.next, index);
     }
 
