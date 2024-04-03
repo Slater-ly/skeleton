@@ -262,9 +262,4 @@ public class ArrayDeque<Link> implements Deque<Link>, Iterable<Link> {
         }
         return x;
     }
-
-    public static void main(String[] args) {
-        ArrayDeque<Integer> sao = new ArrayDeque<>();
-        Iterator<Integer> test = sao.iterator();
-    }
 }
