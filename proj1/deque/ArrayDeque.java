@@ -2,8 +2,8 @@ package deque;
 
 import java.util.Iterator;
 
-public class ArrayDeque<Link> implements Deque<Link>, Iterable<Link> {
-    Link[] items;
+public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
+    T[] items;
     int size = 0;
     int startIndex = -1;
     int endIndex = -1;
@@ -13,11 +13,11 @@ public class ArrayDeque<Link> implements Deque<Link>, Iterable<Link> {
      * @return
      */
     @Override
-    public Iterator<Link> iterator() {
-        return new myIterator();
+    public Iterator<T> iterator() {
+        return new MyIterator();
     }
 
-    private class myIterator implements Iterator<Link> {
+    private class MyIterator implements Iterator<T> {
         private int count = 0;
         private int cou = 0;
 
@@ -27,15 +27,15 @@ public class ArrayDeque<Link> implements Deque<Link>, Iterable<Link> {
         @Override
         public boolean hasNext() {
             count = count + 1;
-            return !(size >= count);
+            return size >= count;
         }
 
         /**
          * @return
          */
         @Override
-        public Link next() {
-            Link x;
+        public T next() {
+            T x;
             if (cou <= items.length - startIndex) {
                 x = items[startIndex + cou];
             } else {
@@ -44,23 +44,27 @@ public class ArrayDeque<Link> implements Deque<Link>, Iterable<Link> {
             cou = cou + 1;
             return x;
         }
+
+        public int getCount() {
+            return this.count;
+        }
     }
 
     public ArrayDeque() {
-        items = (Link[]) new Object[8];
+        items = (T[]) new Object[8];
     }
 
-    private void recover(boolean FLAG) {
+    private void recover(boolean bigFlag) {
         boolean flag = false;
 
-        int t = FLAG ? (size * 2) : size + 1;
-        Link[] a = (Link[]) new Object[t];
+        int t = bigFlag ? (size * 2) : size + 1;
+        T[] a = (T[]) new Object[t];
         //
         if (startIndex < endIndex && startIndex != 0) {
             System.arraycopy(items, startIndex, a, 0, endIndex - startIndex + 1);
             flag = true;
         } else {
-            if (!FLAG || endIndex + 1 == startIndex || endIndex + 1 == size) {
+            if (!bigFlag || endIndex + 1 == startIndex || endIndex + 1 == size) {
                 endIndex = endIndex + 1;
             }
             if (endIndex == size && justAddFirst) {
@@ -80,7 +84,7 @@ public class ArrayDeque<Link> implements Deque<Link>, Iterable<Link> {
             flag = true;
         }
         if (flag) {
-            if (FLAG) {
+            if (bigFlag) {
                 startIndex = size + startIndex;
             } else {
                 if (startIndex > endIndex) {
@@ -103,7 +107,7 @@ public class ArrayDeque<Link> implements Deque<Link>, Iterable<Link> {
     }
 
     @Override
-    public void addFirst(Link x) {
+    public void addFirst(T x) {
         if (startIndex - 1 == endIndex || startIndex == 0) {
             recover(true);
         }
@@ -123,7 +127,7 @@ public class ArrayDeque<Link> implements Deque<Link>, Iterable<Link> {
      *
      */
     @Override
-    public void addLast(Link x) {
+    public void addLast(T x) {
         justAddFirst = false;
         if (endIndex + 1 == startIndex || endIndex >= items.length) {
             recover(true);
@@ -150,9 +154,9 @@ public class ArrayDeque<Link> implements Deque<Link>, Iterable<Link> {
      *
      */
     @Override
-    public Link removeFirst() {
+    public T removeFirst() {
         check();
-        Link x = null;
+        T x = null;
         if (!isEmpty()) {
             if (startIndex == items.length && items[startIndex - 1] == null) {
                 startIndex = 0;
@@ -169,9 +173,9 @@ public class ArrayDeque<Link> implements Deque<Link>, Iterable<Link> {
      *
      */
     @Override
-    public Link removeLast() {
+    public T removeLast() {
         check();
-        Link x = null;
+        T x = null;
         if (!isEmpty()) {
             if (endIndex == 0 && items[endIndex] == null) {
                 endIndex = items.length - 1;
@@ -197,14 +201,14 @@ public class ArrayDeque<Link> implements Deque<Link>, Iterable<Link> {
     /**
      *
      */
-    public Link getFirst() {
+    public T getFirst() {
         return items[startIndex];
     }
 
     /**
      *
      */
-    public Link getLast() {
+    public T getLast() {
         return items[endIndex];
     }
 
@@ -243,8 +247,8 @@ public class ArrayDeque<Link> implements Deque<Link>, Iterable<Link> {
     }
 
     @Override
-    public Link get(int index) {
-        Link x = null;
+    public T get(int index) {
+        T x = null;
         int length = endIndex + items.length - startIndex;
         if (length > index) {
             if (startIndex == 0 && endIndex != 0) {

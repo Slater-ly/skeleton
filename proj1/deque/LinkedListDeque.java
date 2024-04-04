@@ -106,7 +106,7 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
         T x = sentinel.last.item;
         sentinel.last = sentinel.last.last;
         sentinel.last.last.next = sentinel;
-        if(sentinel.next != null){
+        if (sentinel.next != null) {
             sentinel.next.last = sentinel;
         }
         size = size > 0 ? (size - 1) : 0;
@@ -194,12 +194,12 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
 //
 //
 //        a.printDeque();
-        for (int i = 0; i < 50;i ++){
+        for (int i = 0; i < 50; i++) {
             a.addLast(i);
 //            a.addLast(i);
         }
 
-        for (int i = 0; i < 50;i ++){
+        for (int i = 0; i < 50; i++) {
 //            System.out.println(a.getRecursive(i));
             System.out.println(a.get(i));
 //            a.addLast(i);

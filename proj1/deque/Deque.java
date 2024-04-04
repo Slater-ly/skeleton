@@ -1,17 +1,17 @@
 package deque;
 
-public interface Deque<Link>  {
-    void addFirst(Link x);
+public interface Deque<T>  {
+    void addFirst(T x);
 
-    void addLast(Link x);
+    void addLast(T x);
 
-    Link removeFirst();
+    T removeFirst();
 
-    Link removeLast();
+    T removeLast();
 
-    Link getFirst();
+    T getFirst();
 
-    Link getLast();
+    T getLast();
 
     boolean isEmpty();
 
@@ -19,5 +19,5 @@ public interface Deque<Link>  {
 
     void printDeque();
 
-    Link get(int index);
+    T get(int index);
 }
