@@ -1,7 +1,10 @@
 package capers;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
 
+import static capers.CapersRepository.CWD;
 import static capers.Utils.*;
 
 /** Canine Capers: A Gitlet Prelude.
@@ -36,11 +39,11 @@ public class Main {
      *
      * @param args arguments from the command line
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         if (args.length == 0) {
             Utils.exitWithError("Must have at least one argument");
         }
-
+        System.out.println("args: " + Arrays.toString(args));
         CapersRepository.setupPersistence();
         String text;
         switch (args[0]) {
@@ -52,10 +55,12 @@ public class Main {
             break;
         case "dog":
             validateNumArgs("dog", args, 4);
+            CapersRepository.makeDog(args[1], args[2], Integer.parseInt(args[3]));
             // TODO: make a dog
             break;
         case "birthday":
             validateNumArgs("birthday", args, 2);
+            CapersRepository.celebrateBirthday(args[1]);
             // TODO: celebrate this dog's birthday
             break;
         default:
