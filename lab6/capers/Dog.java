@@ -81,7 +81,7 @@ public class Dog implements Serializable{ // TODO
             File NameSet = Utils.join(DOG_FOLDER, name + ".txt");
             Dog dog = new Dog(name, breed, age);
             Utils.writeObject(NameSet, dog);
-            System.out.println(dog);
+            System.out.print(dog);
             NameSet.createNewFile();
         }
     }
