@@ -6,6 +6,7 @@ public class Stage implements Serializable {
     private String fileName;
     private String fileContent;
     private Integer fileStatus;
+    //暂存区定义
 
     public void setFileName(String fileName) {
         this.fileName = fileName;

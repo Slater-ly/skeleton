@@ -9,16 +9,18 @@ import static gitlet.Repository.CWD;
 import static gitlet.Repository.GITLET_DIR;
 import static gitlet.Utils.plainFilenamesIn;
 
-/** Driver class for Gitlet, a subset of the Git version-control system.
- *  @author TODO
+/**
+ * Driver class for Gitlet, a subset of the Git version-control system.
+ *
+ * @author TODO
  */
 public class Main {
 
-    /** Usage: java gitlet.Main ARGS, where ARGS contains
-     *  <COMMAND> <OPERAND1> <OPERAND2> ... 
-     我应该如何界定是否在暂存区内:add了但还没commit就是暂存区 add的标准就是 文件内容不同(即sha1编码不同)
-     清空暂存区的标准是什么:commit了所有暂存区内的文件之后
-     怎样定义暂存区:新建一个暂存区类 改变暂存区的状态
+    /**
+     * Usage: java gitlet.Main ARGS, where ARGS contains
+     * <COMMAND> <OPERAND1> <OPERAND2> ...
+     * 我应该如何界定是否在暂存区内:add了但还没commit就是暂存区 add的标准就是 文件内容不同(即sha1编码不同)
+     * 清空暂存区的标准是什么:commit了所有暂存区内的文件之后
      */
     public static void main(String[] args) throws GitletException, IOException {
         // TODO: what if args is empty?
@@ -66,9 +68,9 @@ public class Main {
                 case "reset":
                     Repository.reset(args[1]);
                     break;
-                 case "merge":
-                     Repository.merge(args[1]);
-                     break;
+                case "merge":
+                    Repository.merge(args[1]);
+                    break;
                 default:
                     throw new GitletException("No command with that name exists.");
             }

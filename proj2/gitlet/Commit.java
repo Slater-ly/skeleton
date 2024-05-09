@@ -7,11 +7,12 @@ import java.text.SimpleDateFormat;
 import java.util.Date; // TODO: You'll likely use this in this class
 import java.util.TimeZone;
 
-/** Represents a gitlet commit object.
+/**
+ * Represents a gitlet commit object.
  *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
- *  @author TODO
+ * @author TODO
  */
 public class Commit implements Serializable {
     /**
@@ -21,12 +22,15 @@ public class Commit implements Serializable {
      * comment above them describing what that variable represents and how that
      * variable is used. We've provided one example for `message`.
      */
-    /** The message of this Commit. */
+    /**
+     * The message of this Commit.
+     */
     private String message;
     private String treeSha1;
     private String timestamp;
     private String parent;
-    public Commit(String message, String parent,String treeSha1){
+
+    public Commit(String message, String parent, String treeSha1) {
         this.parent = parent;
         this.message = message;
         this.treeSha1 = treeSha1;
@@ -54,7 +58,8 @@ public class Commit implements Serializable {
     public String getParent() {
         return parent;
     }
-    private String setTheTime(){
+
+    private String setTheTime() {
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss zzz, EEEE, d MMMM yyyy");
         sdf.setTimeZone(TimeZone.getTimeZone("GMT+8"));
         return sdf.format(new Date());

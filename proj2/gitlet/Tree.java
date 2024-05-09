@@ -12,7 +12,11 @@ public class Tree implements Serializable {
         this.fileContent = fileContent;
         this.typeOfReference = typeOfReference;
     }
-    public String getFileName() {return fileName;}
+
+    public String getFileName() {
+        return fileName;
+    }
+
     public String getFileContent() {
         return fileContent;
     }
