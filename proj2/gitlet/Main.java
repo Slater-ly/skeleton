@@ -10,7 +10,6 @@ import static gitlet.Repository.GITLET_DIR;
 import static gitlet.Utils.plainFilenamesIn;
 
 /**
- *
  * @author TODO
  */
 public class Main {
