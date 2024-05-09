@@ -10,7 +10,6 @@ import static gitlet.Repository.GITLET_DIR;
 import static gitlet.Utils.plainFilenamesIn;
 
 /**
- * Driver class for Gitlet, a subset of the Git version-control system.
  *
  * @author TODO
  */
