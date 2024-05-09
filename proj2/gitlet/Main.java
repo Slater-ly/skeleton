@@ -108,9 +108,7 @@ public class Main {
                 default:
                     System.out.println("No command with that name exists.");
             }
-            Repository.test();
         }
     }
-
 }
 

@@ -104,10 +104,8 @@ public class Repository {
         File temp1 = join(MAPBRANCH_DIR, branchName);
         File temp = join(BRANCH_DIR, branchName);
         String tempCommit = readContentsAsString(HEAD);
-        System.out.println("HEAD Commit" + tempCommit);
         // 创建分支时,应该让其指向最新的commit
         tempCommit = tempCommit.substring(tempCommit.length() - 40);
-        System.out.println("HEAD Commit" + tempCommit);
         writeObject(temp, tempCommit);
         writeObject(temp1, tempCommit);
         temp.createNewFile();
@@ -159,7 +157,6 @@ public class Repository {
         // 此时头指针已经更新但是master指针还没更新
         judgeVoidCommit(message);
         Commit tempCommit = new Commit(message, null, dealWithTree());
-        System.out.println(Objects.requireNonNull(plainFilenamesIn(COMMIT_DIR)).size());
         // 将commit添加到文件夹内
         if (Objects.requireNonNull(plainFilenamesIn(COMMIT_DIR)).size() != 0) {
             tempCommit.setParent(getLatestCommit());
@@ -184,8 +181,6 @@ public class Repository {
         String substring = latestCommit.substring(latestCommit.length() - 40);
         Commit tempCommit = readObject(join(COMMIT_DIR, substring), Commit.class);
         Trees tempTree = readObject(join(TREE_DIR, tempCommit.getTreeSha1()), Trees.class);
-        System.out.println(plainFilenamesIn(Stages));
-        System.out.println(Stages.length());
         if (Objects.requireNonNull(plainFilenamesIn(Stages)).size() == 0 && tempTree.Trees.stream().noneMatch(x -> x.getFileName().equals(fileName))) {
             System.out.println("No reason to remove the file");
         }
@@ -220,7 +215,6 @@ public class Repository {
     public static void Log() {
         // 待完成: 合并分支时显示两个parent
         String currentBranch = readContentsAsString(join(BRANCH_DIR, currentBranchName));
-        System.out.println(currentBranch);
         currentBranch = currentBranch.substring(currentBranch.length() - 40);
         Commit commit = readObject(join(COMMIT_DIR, currentBranch), Commit.class);
         while (commit.getParent() != null) {
@@ -289,7 +283,6 @@ public class Repository {
     */
     public static void checkout(String... args) throws IOException {
         int length = args.length;
-        System.out.println(Arrays.toString(args));
         switch (length) {
             case 2:
                 dealWithBranch(args[1]);
@@ -734,7 +727,6 @@ contents of the conflicted file with
      * @throws IOException 如果在更新文件或创建文件时发生错误
      */
     private static void updateCurrentBranchAndHEAD(String commitSha1) throws IOException {
-        System.out.println("Updating branch " + currentBranchName + " to commit " + commitSha1);
         // 1. 获取当前活动分支的文件路径
         File updateCurrentBranch = join(BRANCH_DIR, currentBranchName);
         // 2. 写入新的commitSHA1到当前分支文件
@@ -788,7 +780,6 @@ contents of the conflicted file with
 
     private static String getLatestCommit() {
         String latestCommit = readContentsAsString(HEAD);
-        System.out.println(latestCommit);
         return latestCommit.substring(latestCommit.length() - 40);
     }
 
@@ -804,14 +795,5 @@ contents of the conflicted file with
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public static void test() {
-        System.out.println("==========================");
-        for (String s : plainFilenamesIn(BRANCH_DIR)) {
-            System.out.println("branchName:" + s + " " + "branchContent:" + readContentsAsString(join(BRANCH_DIR, s)));
-        }
-        System.out.println("HEAD:" + readContentsAsString(HEAD));
-        System.out.println("==========================");
     }
 }
