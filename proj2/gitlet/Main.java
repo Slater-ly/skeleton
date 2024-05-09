@@ -22,7 +22,7 @@ public class Main {
      * 我应该如何界定是否在暂存区内:add了但还没commit就是暂存区 add的标准就是 文件内容不同(即sha1编码不同)
      * 清空暂存区的标准是什么:commit了所有暂存区内的文件之后
      */
-    public static void main(String[] args) throws GitletException, IOException {
+    public static void main(String[] args){
         // TODO: what if args is empty?
         if (args == null) {
             throw new GitletException("Please enter a command.");
@@ -31,19 +31,35 @@ public class Main {
             switch (firstArg) {
                 case "init":
                     // TODO: handle the `init` command
-                    Repository.init();
+                    try {
+                        Repository.init();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                     break;
                 case "add":
-                    Repository.add(args[1]);
+                    try {
+                        Repository.add(args[1]);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
 
                     // TODO: handle the `add [filename]` command
                     break;
                 // TODO: FILL THE REST IN
                 case "commit":
-                    Repository.commit(args[1]);
+                    try {
+                        Repository.commit(args[1]);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                     break;
                 case "rm":
-                    Repository.rm(args[1]);
+                    try {
+                        Repository.rm(args[1]);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                     break;
                 case "log":
                     Repository.Log();
@@ -57,22 +73,42 @@ public class Main {
                     Repository.status();
                     break;
                 case "checkout":
-                    Repository.checkout(args);
+                    try {
+                        Repository.checkout(args);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                     break;
                 case "branch":
-                    Repository.branch(args[1]);
+                    try {
+                        Repository.branch(args[1]);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                     break;
                 case "rm-branch":
-                    Repository.rmBranch(args[1]);
+                    try {
+                        Repository.rmBranch(args[1]);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                     break;
                 case "reset":
-                    Repository.reset(args[1]);
+                    try {
+                        Repository.reset(args[1]);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                     break;
                 case "merge":
-                    Repository.merge(args[1]);
+                    try {
+                        Repository.merge(args[1]);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                     break;
                 default:
-                    throw new GitletException("No command with that name exists.");
+                    System.out.println("No command with that name exists.");
             }
             Repository.test();
         }
