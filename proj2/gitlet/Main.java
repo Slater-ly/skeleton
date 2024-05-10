@@ -47,7 +47,12 @@ public class Main {
                 // TODO: FILL THE REST IN
                 case "commit":
                     try {
-                        Repository.commit(args[1]);
+                        if(args.length == 1){
+                            System.out.println("Please enter a commit message.");
+                        }
+                        else{
+                            Repository.commit(args[1]);
+                        }
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }

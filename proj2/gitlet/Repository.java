@@ -22,6 +22,7 @@ import static gitlet.Utils.*;
  *  @author TODO
  */
 public class Repository {
+    // TODO:5.9 解决bug!!!!!!!!!!!!!!!!
     // TODO:4.30:修改commit的bug
     /**
      * TODO: add instance variables here.
@@ -62,7 +63,7 @@ public class Repository {
 
     public static void init() throws IOException {
         if (GITLET_DIR.exists()) {
-            throw new GitletException("A Gitlet version-control system already exists in the current directory.");
+            System.out.println("A Gitlet version-control system already exists in the current directory.");
         } else {
             Commit initial = new Commit("initial commit", null, null);
             initial.setTimestamp("00:00:00 CST, Thursday, 1 January 1970");
@@ -99,7 +100,7 @@ public class Repository {
 
     private static void createBranch(String branchName) throws IOException {
         if (Objects.requireNonNull(plainFilenamesIn(BRANCH_DIR)).contains(branchName)) {
-            throw new GitletException("A branch with that name already exists.");
+            System.out.println("A branch with that name already exists.");
         }
         File temp1 = join(MAPBRANCH_DIR, branchName);
         File temp = join(BRANCH_DIR, branchName);
@@ -114,7 +115,7 @@ public class Repository {
 
     public static void add(String fileName) throws IOException {
         if (!Objects.requireNonNull(plainFilenamesIn(CWD)).contains(fileName)) {
-            throw new GitletException("File does not exist.");
+            System.out.println("File does not exist.");
         } else {
             File fileContent = join(CWD, fileName);
             String fileSha1 = sha1(readContentsAsString(fileContent));
@@ -152,27 +153,34 @@ public class Repository {
         writeObject(join(TREE_DIR, treeSha1), tempTrees);
         return treeSha1;
     }
-
     public static void commit(String message) throws IOException {
-        // 此时头指针已经更新但是master指针还没更新
-        judgeVoidCommit(message);
-        Commit tempCommit = new Commit(message, null, dealWithTree());
-        // 将commit添加到文件夹内
-        if (Objects.requireNonNull(plainFilenamesIn(COMMIT_DIR)).size() != 0) {
-            tempCommit.setParent(getLatestCommit());
+        if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() == 0){
+            System.out.println("No changes added to the commit.");
         }
-        String sha1 = sha1(sha11(tempCommit));
-        File com = join(COMMIT_DIR, sha1);
-        writeObject(com, tempCommit);
-        com.createNewFile();
-        // 添加完之后应该删除掉暂存区内的内容
-        File readyToDelete = join(Stages, Objects.requireNonNull(plainFilenamesIn(Stages)).get(0));
-        if (readObject(readyToDelete, Stage.class).getFileStatus() == 1) {
-            restrictedDelete(join(CWD, readObject(readyToDelete, Stage.class).getFileName()));
+        else{
+            judgeVoidCommit(message);
+            Commit tempCommit = new Commit(message, null, dealWithTree());
+            // 将commit添加到文件夹内
+            if (Objects.requireNonNull(plainFilenamesIn(COMMIT_DIR)).size() != 0) {
+                tempCommit.setParent(getLatestCommit());
+            }
+            String sha1 = sha1(sha11(tempCommit));
+            File com = join(COMMIT_DIR, sha1);
+            writeObject(com, tempCommit);
+            com.createNewFile();
+            // 添加完之后应该删除掉暂存区内的内容
+            for(File f: plainFilenamesIn(Stages).stream().map(x -> join(Stages, x)).toArray(File[]::new)){
+                if (readObject(f, Stage.class).getFileStatus() == 1) {
+                    restrictedDelete(join(CWD, readObject(f, Stage.class).getFileName()));
+                }
+                restrictedDelete(f);
+            }
+            // 更新指针
+            updateCurrentBranchAndHEAD(sha1);
+            // 此时头指针已经更新但是master指针还没更新
+
         }
-        restrictedDelete(readyToDelete);
-        // 更新指针
-        updateCurrentBranchAndHEAD(sha1);
+
     }
 
     public static void rm(String fileName) throws IOException {
@@ -230,6 +238,7 @@ public class Repository {
         System.out.println("commit " + commitName);
         System.out.println("Date " + commit.getTimestamp());
         System.out.println(commit.getMessage());
+        System.out.println();
     }
 
     public static void find(String message) {
@@ -251,6 +260,7 @@ public class Repository {
     public static void status() {
         printCaption("Branch");
         System.out.println("*" + currentBranchName);
+        System.out.println();
         for (String s : Objects.requireNonNull(plainFilenamesIn(BRANCH_DIR))) {
             if (!s.equals(currentBranchName)) {
                 System.out.println(s);
@@ -267,6 +277,7 @@ public class Repository {
                 removeStage.add(s);
             }
         }
+        System.out.println();
         printCaption("Removed Files");
         for (String s : removeStage) {
             stage = readObject(join(Stages, s), Stage.class);
@@ -274,7 +285,10 @@ public class Repository {
                 System.out.println(stage.getFileName());
             }
         }
-
+        System.out.println();
+        printCaption("Modifications Not Staged For Commit");
+        System.out.println();
+        printCaption("Untracked Files");
     }
 
     /* TODO:
@@ -323,7 +337,6 @@ public class Repository {
         if (temp.equals(tempBranch) && currentBranchName.equals(name)) {
             judgeVoidCmdInCheckout(4);
         } else {
-
             restrictedDelete(join(CWD, returnTreeFromCommit(temp).getFileName()));
             Tree tempTree = returnTreeFromCommit(tempBranch);
             //System.out.println("fileContent:" + tempTree.getFileContent() + "===" + "filename:" + tempTree.getFileName());
@@ -363,11 +376,21 @@ public class Repository {
         String CurrentCommit = readContentsAsString(HEAD);
         CurrentCommit = CurrentCommit.substring(CurrentCommit.length() - 40);
         Trees tempTrees = returnTreesFromCommit(CurrentCommit);
-        if (tempTrees.Trees.stream().noneMatch(x -> x.getFileName().equals(name))) {
-            extractFromBlob(join(BLOB_DIR, returnOnlyFileContentFromTree(CurrentCommit, name)), join(CWD, name));
-        } else {
-            judgeVoidCmdInCheckout(1);
+//        System.out.println(name);
+//        System.out.println("==========================================");
+//        System.out.println(tempTrees.Trees.get(0).getFileContent() + tempTrees.Trees.get(0).getFileName());
+//        System.out.println(tempTrees.Trees.get(1).getFileContent() + tempTrees.Trees.get(1).getFileName());
+//        System.out.println("==========================================");
+        for(Tree tree : tempTrees.Trees){
+            if(tree.getFileName().equals(name)){
+                extractFromBlob(join(BLOB_DIR, returnOnlyFileContentFromTree(CurrentCommit, name)), join(CWD, name));
+                break;
+            }
+            else {
+                judgeVoidCmdInCheckout(1);
+            }
         }
+
         // 遍历提交目录下的所有文件，查找对应的提交对象
 //        if(COMMIT_DIR.listFiles() != null){
 //            // 从提交目录中读取指定名称的提交对象
@@ -451,7 +474,7 @@ public class Repository {
 
     public static void reset(String commitID) throws IOException {
         if (Objects.requireNonNull(plainFilenamesIn(COMMIT_DIR)).contains(commitID)) {
-            throw new GitletException("No commit with that id exists.");
+            System.out.println("No commit with that id exists.");
         }
         if (TREE_DIR.listFiles() != null) {
             Tree tempTree;
@@ -753,7 +776,7 @@ contents of the conflicted file with
             if (flag == 1) {
                 tempHint = "Please enter a commit message";
             }
-            throw new GitletException(tempHint);
+            System.out.println(tempHint);
         }
     }
 
@@ -766,15 +789,15 @@ contents of the conflicted file with
      */
 
     private static void printCaption(String message) {
-        System.out.println("===" + message + "===");
+        System.out.println("=== " + message + " ===");
     }
 
     private static void judgeIfBranchExistOrCurrent(String branchName) {
         if (Objects.equals(branchName, currentBranchName)) {
-            throw new GitletException("Cannot remove the current branch.");
+            System.out.println("Cannot remove the current branch.");
         }
         if (!Objects.requireNonNull(plainFilenamesIn(BRANCH_DIR)).contains(branchName)) {
-            throw new GitletException("A branch with that name does not exist.");
+            System.out.println("A branch with that name does not exist.");
         }
     }
 
