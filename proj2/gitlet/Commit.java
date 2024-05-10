@@ -19,6 +19,7 @@ public class Commit implements Serializable {
      *
      * comment above them describing what that variable represents and how that
      * variable is used. We've provided one example for `message`.
+     * lalala
      */
     /**
      * The message of this Commit.
