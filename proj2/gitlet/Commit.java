@@ -60,8 +60,8 @@ public class Commit implements Serializable {
     }
 
     private String setTheTime() {
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss zzz, EEEE, d MMMM yyyy");
-        sdf.setTimeZone(TimeZone.getTimeZone("GMT+8"));
+        SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z");
+        sdf.setTimeZone(TimeZone.getTimeZone("-08:00"));
         return sdf.format(new Date());
     }
 
