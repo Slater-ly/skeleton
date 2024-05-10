@@ -66,7 +66,7 @@ public class Repository {
             System.out.println("A Gitlet version-control system already exists in the current directory.");
         } else {
             Commit initial = new Commit("initial commit", null, null);
-            initial.setTimestamp("00:00:00 CST, Thursday, 1 January 1970");
+            initial.setTimestamp("Wed Dec 31 16:00:00 1969 -0800");
             initEmptyRepository(sha1(sha11(initial)));
             PersistenceCommit(initial);
         }
