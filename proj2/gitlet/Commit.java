@@ -18,7 +18,6 @@ public class Commit implements Serializable {
     /**
      * TODO: add instance variables here.
      *
-     * List all instance variables of the Commit class here with a useful
      * comment above them describing what that variable represents and how that
      * variable is used. We've provided one example for `message`.
      */
