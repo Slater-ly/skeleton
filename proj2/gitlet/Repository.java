@@ -184,31 +184,49 @@ public class Repository {
     }
 
     public static void rm(String fileName) throws IOException {
-        //
+        /*
+        * 界定几个状态。
+        * 1.已暂存 还未提交 add 之后马上执行的话 清空暂存区
+        * 2.已被追踪 则要将文件标记为待删除的状态 且要删除在工作区中的文件
+        * 3.未被追踪且不在暂存区 则提供错误用例
+        * */
         String latestCommit = getLatestCommit();
         String substring = latestCommit.substring(latestCommit.length() - 40);
-        Commit tempCommit = readObject(join(COMMIT_DIR, substring), Commit.class);
-        Trees tempTree = readObject(join(TREE_DIR, tempCommit.getTreeSha1()), Trees.class);
-        if (Objects.requireNonNull(plainFilenamesIn(Stages)).size() == 0 && tempTree.Trees.stream().noneMatch(x -> x.getFileName().equals(fileName))) {
-            System.out.println("No reason to remove the file");
-        }
-        if (Stages.length() != 0) {
-            File tempStagePath = join(Stages, Objects.requireNonNull(plainFilenamesIn(Stages)).get(0));
-            Stage tempStage = readObject(tempStagePath, Stage.class);
-            if (fileName.equals(tempStage.getFileName()) && tempStage.getFileStatus() == 0) {
-//                restictedDelete(tempStagePath);
-                tempStage.setFileStatus(1);
-                writeObject(tempStagePath, tempStage);
-                tempStagePath.createNewFile();
+        if(Objects.requireNonNull(plainFilenamesIn(Stages)).isEmpty()){
+            Commit tempCommit = readObject(join(COMMIT_DIR, substring), Commit.class);
+            // 如果树对象是是空的,则直接清除暂存区
+            if(Objects.requireNonNull(plainFilenamesIn(TREE_DIR)).isEmpty()){
+                restrictedDelete(Stages);
+            }
+            else{
+                Trees tempTree = readObject(join(TREE_DIR, tempCommit.getTreeSha1()), Trees.class);
+                // 如果是当前提交对应的tree里面有此文件,则将文件标记位待删除
+                if (tempTree.Trees.stream().anyMatch(x -> x.getFileName().equals(fileName))) {
+                    Optional<String> fileContents = tempTree.Trees.stream().filter(x -> x.getFileName().equals(fileName)).map(Tree::getFileContent).findFirst();
+                    if (fileContents.isPresent()) {
+                        String fileContent = fileContents.get();
+                        // 此时应该更新一条待删除的commit
+                        if (Objects.requireNonNull(plainFilenamesIn(CWD)).contains(fileName)) {
+                            addIntoStage(fileName, fileContent, 1);
+                            restrictedDelete(join(CWD, fileName));
+//                System.out.println("successful set the status");
+                        }
+                    }
+                }
+                // 如果不是的话 则既没有被暂存也没有被追踪 直接铲掉
+                else{
+                    System.out.println("No reason to remove the file");
+                }
             }
         }
-        Optional<String> fileContents = tempTree.Trees.stream().filter(x -> x.getFileName().equals(fileName)).map(Tree::getFileContent).findFirst();
-        if (fileContents.isPresent()) {
-            String fileContent = fileContents.get();
-            // 此时应该更新一条待删除的commit
-            if (Objects.requireNonNull(plainFilenamesIn(CWD)).contains(fileName)) {
-                addIntoStage(fileName, fileContent, 1);
-//                System.out.println("successful set the status");
+        else {
+            Stage tempStage;
+            for(File f: Objects.requireNonNull(plainFilenamesIn(Stages)).stream().map(x -> join(Stages, x)).toArray(File[]::new)){
+                tempStage = readObject(f, Stage.class);
+                if (fileName.equals(tempStage.getFileName()) && tempStage.getFileStatus() == 0) {
+                    restrictedDelete(join(Stages, sha1(readContentsAsString(join(CWD,fileName)))));
+                    break;
+                }
             }
         }
     }
@@ -236,7 +254,7 @@ public class Repository {
     private static void showCommit(Commit commit, String commitName) {
         System.out.println("===");
         System.out.println("commit " + commitName);
-        System.out.println("Date " + commit.getTimestamp());
+        System.out.println("Date: " + commit.getTimestamp());
         System.out.println(commit.getMessage());
         System.out.println();
     }
@@ -320,10 +338,17 @@ public class Repository {
         Commit commit = readObject(join(COMMIT_DIR, commitId), Commit.class);
         Commit parentCommit = readObject(join(COMMIT_DIR, commit.getParent()), Commit.class);
         Trees tempTrees = readObject(join(TREE_DIR, commit.getTreeSha1()), Trees.class);
-        Trees tempParentTrees = readObject(join(TREE_DIR, parentCommit.getTreeSha1()), Trees.class);
-        List<Tree> tempTreeList = new ArrayList<>(tempTrees.Trees);
-        tempTreeList.removeAll(tempParentTrees.Trees);
-        return tempTreeList.get(0);
+//        System.out.println(tempTrees.Trees.stream().map(Tree::toString).collect(Collectors.joining("\n")));
+        List<Tree> diff = tempTrees.Trees;
+        if(parentCommit.getTreeSha1() != null){
+//            System.out.println("================");
+            Trees tempParentTrees = readObject(join(TREE_DIR, parentCommit.getTreeSha1()), Trees.class);
+            diff = tempTrees.Trees.stream().filter(aTree ->  tempParentTrees.Trees.stream().noneMatch(aTree::equals)).collect(Collectors.toList());
+//            System.out.println(tempParentTrees.Trees.stream().map(Tree::toString).collect(Collectors.joining("\n")));
+//            System.out.println("================");
+        }
+//        System.out.println(diff.stream().map(Tree::toString).collect(Collectors.joining("\n")));
+        return diff.get(0);
     }
 
     private static void dealWithBranch(String name) throws IOException {
@@ -433,7 +458,7 @@ public class Repository {
         if (commit.getTreeSha1() != null) {
             Tree tempTree = returnTreeFromCommit(commitId);
             // 在树对象中查找指定字段名的文件
-
+            System.out.println(tempTree.getFileContent());
             if (tempTree.getFileName().equals(fileName)) {
                 // 如果找到，将文件内容解压并写入当前工作目录
 //                writeDecompress(readContents(join(BLOB_DIR, tempTree.getFileContent())), join(CWD, fileName));

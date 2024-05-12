@@ -1,6 +1,7 @@
 package gitlet;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class Tree implements Serializable {
     private String fileName;
@@ -19,5 +20,34 @@ public class Tree implements Serializable {
 
     public String getFileContent() {
         return fileContent;
+    }
+
+    @Override
+    public String toString() {
+        return "Tree{" +
+                "fileName='" + fileName + '\'' +
+                ", fileContent='" + fileContent + '\'' +
+                ", typeOfReference='" + typeOfReference + '\'' +
+                '}';
+    }
+    // 重写 equals() 方法
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        Tree otherTree = (Tree) obj;
+        return Objects.equals(fileName, otherTree.fileName) &&
+                Objects.equals(fileContent, otherTree.fileContent) &&
+                Objects.equals(typeOfReference, otherTree.typeOfReference);
+    }
+
+    // 重写 hashCode() 方法
+    @Override
+    public int hashCode() {
+        return Objects.hash(fileName, fileContent, typeOfReference);
     }
 }

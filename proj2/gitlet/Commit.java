@@ -3,8 +3,10 @@ package gitlet;
 // TODO: any imports you need here
 
 import java.io.Serializable;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date; // TODO: You'll likely use this in this class
+import java.util.Locale;
 import java.util.TimeZone;
 
 /**
@@ -28,14 +30,14 @@ public class Commit implements Serializable {
     private String treeSha1;
     private String timestamp;
     private String parent;
+    private Date currentTime;
 
     public Commit(String message, String parent, String treeSha1) {
         this.parent = parent;
         this.message = message;
         this.treeSha1 = treeSha1;
-        this.timestamp = setTheTime();
-
-
+        this.currentTime = new Date(0);
+        this.timestamp = setTheTime(currentTime);
     }
 
     public void setTreeSha1(String treeSha1) {
@@ -58,11 +60,15 @@ public class Commit implements Serializable {
         return parent;
     }
 
-    private String setTheTime() {
-        SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z");
-        sdf.setTimeZone(TimeZone.getTimeZone("-08:00"));
-        return sdf.format(new Date());
+    private String setTheTime(Date date) {
+        SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
+//        sdf.setTimeZone(TimeZone.getTimeZone("-08:00"));
+        return sdf.format(date);
     }
+//    private static String dateToTimeStamp(Date date) {
+//        DateFormat dateFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
+//        return dateFormat.format(date);
+//    }
 
     public void setTimestamp(String timestamp) {
         this.timestamp = timestamp;
@@ -73,7 +79,7 @@ public class Commit implements Serializable {
 
     public void setParent(String parent) {
         this.parent = parent;
-        this.timestamp = setTheTime();
+        this.timestamp = setTheTime(new Date());
     }
     /* TODO: fill in the rest of this class. */
 }
