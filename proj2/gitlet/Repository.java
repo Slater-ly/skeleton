@@ -11,6 +11,7 @@ import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
 import static gitlet.Utils.*;
+import static java.lang.System.exit;
 
 // TODO: any imports you need here
 
@@ -126,8 +127,8 @@ public class Repository {
                     // 如果没有，则添加一条blob
                     addIntoBlob(fileName, join(BLOB_DIR, fileSha1));
                     // 添加至暂存区文件夹
-                    addIntoStage(fileName, fileSha1, 0);
                 }
+                addIntoStage(fileName, fileSha1, 0);
             }
         }
     }
@@ -196,7 +197,8 @@ public class Repository {
             Commit tempCommit = readObject(join(COMMIT_DIR, substring), Commit.class);
             // 如果树对象是是空的,则直接清除暂存区
             if(Objects.requireNonNull(plainFilenamesIn(TREE_DIR)).isEmpty()){
-                restrictedDelete(Stages);
+                //restrictedDelete(Stages);
+                System.out.println("No reason to remove the file");
             }
             else{
                 Trees tempTree = readObject(join(TREE_DIR, tempCommit.getTreeSha1()), Trees.class);
@@ -251,7 +253,7 @@ public class Repository {
         showCommit(commit, currentBranch);
     }
 
-    private static void showCommit(Commit commit, String commitName) {
+    private static void  showCommit(Commit commit, String commitName) {
         System.out.println("===");
         System.out.println("commit " + commitName);
         System.out.println("Date: " + commit.getTimestamp());
@@ -303,10 +305,107 @@ public class Repository {
                 System.out.println(stage.getFileName());
             }
         }
+        if(! Objects.requireNonNull(plainFilenamesIn(TREE_DIR)).isEmpty() && Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0){
+            checkDelByUser();
+        }
         System.out.println();
         printCaption("Modifications Not Staged For Commit");
+//        showModificationsNotStaged();
         System.out.println();
         printCaption("Untracked Files");
+//        showUntrackedFiles();
+        System.out.println();
+    }
+    private static void checkDelByUser() {
+        Trees tempTree = readObject(join(TREE_DIR, readObject(join(COMMIT_DIR,getLatestCommit()), Commit.class).getTreeSha1()), Trees.class);
+        List<String> trackedFiles = new HashSet<>(tempTree.Trees).stream().map(Tree::getFileName).collect(Collectors.toList());
+        trackedFiles.stream().filter(fileName -> !Objects.requireNonNull(plainFilenamesIn(CWD)).contains(fileName)).forEach(System.out::println);
+    }
+    private static void showTree(){
+        for(String f: Objects.requireNonNull(plainFilenamesIn(TREE_DIR))){
+            Trees s = readObject(join(TREE_DIR, f), Trees.class);
+            System.out.println("trees:" + f);
+            s.Trees.forEach(tree -> System.out.println(tree.getFileName() + ":::" + tree.getFileContent()));
+        }
+    }
+    private static void showUntrackedFiles() {
+//        List<Tree> trees = readObject(join(TREE_DIR, readObject(join(COMMIT_DIR,getLatestCommit()), Commit.class).getTreeSha1()), Trees.class).Trees;
+//        for(String fileName: Objects.requireNonNull(plainFilenamesIn(CWD))){
+//            for(Tree tree:trees){
+//                if(tree.getFileName().equals(fileName) && tree.getFileContent().equals(sha1(readContentsAsString(join(CWD,fileName))))){
+//                    System.out.println(fileName);
+//                }
+//                if(Objects.requireNonNull(Stages.listFiles()).length != 0){
+//                    Stage temp = readObject(join(Stages, plainFilenamesIn(Stages).get(0)), Stage.class);
+//                    if(temp.getFileName().equals(tree.getFileName())){
+//                        if(temp.getFileStatus() == 0){
+//                            System.out.println(temp.getFileName());
+//                        }
+//                        if(temp.getFileStatus() == 1){
+//
+//                        }
+//                    }
+//                }
+//            }
+//        }
+        /*
+        * 这部分用于列出工作目录中存在的，既未被暂存为新增也未被跟踪的文件。
+          这也包括已被暂存为移除，但之后在Gitlet不知情的情况下重新创建的文件。
+          忽略任何可能引入的子目录，因为Gitlet不处理它们。
+        */
+        List<String> sss = plainFilenamesIn(CWD);
+        List<String> fileNameInCWD = new ArrayList<>(sss);
+        if(Objects.requireNonNull(Stages.listFiles()).length != 0){
+            Stage temp = readObject(join(Stages, Objects.requireNonNull(plainFilenamesIn(Stages)).get(0)), Stage.class);
+            if(temp.getFileStatus() == 0){
+                fileNameInCWD.remove(temp.getFileName());
+            }
+        }
+        else {
+            //找到未被追踪的文件
+            if(Objects.requireNonNull(TREE_DIR.listFiles()).length != 0){
+                Trees tempTrees = readObject(join(TREE_DIR, readObject(join(COMMIT_DIR,getLatestCommit()), Commit.class).getTreeSha1()), Trees.class);
+                for(String name : fileNameInCWD){
+                    if(tempTrees.Trees.stream().anyMatch(tree -> tree.getFileName().equals(name) && tree.getFileContent().equals(sha1(readContentsAsString(join(CWD,name)))))){
+                        fileNameInCWD.remove(name);
+                    }
+                }
+            }
+        }
+        fileNameInCWD.forEach(System.out::println);
+    }
+    private static void showModificationsNotStaged(){
+        boolean flag = false;
+        // 在当前提交被追踪 但在工作目录中修改但未被暂存
+        List<String> fileName = Arrays.asList(Objects.requireNonNull(CWD.list()));
+        String sss ="";
+        Tree a;
+        if(Objects.requireNonNull(Stages.listFiles()).length != 0){
+            Stage tempStage = readObject(join(Stages, Objects.requireNonNull(plainFilenamesIn(Stages)).get(0)),Stage.class);
+            if(!tempStage.getFileContent().equals(sha1(readContentsAsString(join(CWD,tempStage.getFileName())))) || !Objects.requireNonNull(plainFilenamesIn(CWD)).contains(tempStage.getFileName())){
+                flag = true;
+                sss = tempStage.getFileName();
+            }
+            if(Objects.requireNonNull(TREE_DIR.listFiles()).length != 0) {
+                a = readObject(join(TREE_DIR, readObject(join(COMMIT_DIR,getLatestCommit()), Commit.class).getTreeSha1()), Trees.class).Trees.get(0);
+                if(tempStage.getFileStatus() == 1 && tempStage.getFileName().equals(a.getFileName()) && !fileName.contains(tempStage.getFileName())){
+                    flag = true;
+                    sss = tempStage.getFileName();
+                }
+            }
+        }
+        else{
+            if(Objects.requireNonNull(TREE_DIR.listFiles()).length != 0){
+                a = readObject(join(TREE_DIR, readObject(join(COMMIT_DIR,getLatestCommit()), Commit.class).getTreeSha1()), Trees.class).Trees.get(0);
+                if(!a.getFileContent().equals(sha1(readContentsAsString(join(CWD,a.getFileName()))))){
+                    flag = true;
+                    sss = a.getFileName();
+                }
+            }
+        }
+        if(flag){
+            System.out.println(sss);
+        }
     }
 
     /* TODO:
@@ -458,7 +557,6 @@ public class Repository {
         if (commit.getTreeSha1() != null) {
             Tree tempTree = returnTreeFromCommit(commitId);
             // 在树对象中查找指定字段名的文件
-            System.out.println(tempTree.getFileContent());
             if (tempTree.getFileName().equals(fileName)) {
                 // 如果找到，将文件内容解压并写入当前工作目录
 //                writeDecompress(readContents(join(BLOB_DIR, tempTree.getFileContent())), join(CWD, fileName));
@@ -498,7 +596,7 @@ public class Repository {
     }
 
     public static void reset(String commitID) throws IOException {
-        if (Objects.requireNonNull(plainFilenamesIn(COMMIT_DIR)).contains(commitID)) {
+        if (!Objects.requireNonNull(plainFilenamesIn(COMMIT_DIR)).contains(commitID)) {
             System.out.println("No commit with that id exists.");
         }
         if (TREE_DIR.listFiles() != null) {
@@ -508,7 +606,10 @@ public class Repository {
             // 检出文件
             checkOutFileWithCommit(commitID, tempTree.getFileName());
             // 清空暂存区
-            restrictedDelete(join(Stages, Objects.requireNonNull(plainFilenamesIn(Stages)).get(0)));
+            if(Objects.requireNonNull(Stages.listFiles()).length != 0){
+                restrictedDelete(join(Stages, Objects.requireNonNull(plainFilenamesIn(Stages)).get(0)));
+
+            }
             // 移动分支头
             updateCurrentBranchAndHEAD(commitID);
         }
