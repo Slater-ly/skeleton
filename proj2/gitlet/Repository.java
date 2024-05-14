@@ -2,6 +2,7 @@ package gitlet;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -422,6 +423,10 @@ public class Repository {
                 dealWithFile(args[2]);
                 break;
             case 4:
+                if (!args[2].equals("--")) {
+                    System.out.println("Incorrect operands.");
+                    System.exit(0);
+                }
                 checkOutFileWithCommit(args[1], args[3]);
                 break;
         }
@@ -454,24 +459,29 @@ public class Repository {
         if (!plainFilenamesIn(BRANCH_DIR).contains(name)) {
             judgeVoidCmdInCheckout(3);
         }
-        String branchToCommit = readContentsAsString(join(BRANCH_DIR, name));
-        // 检查当前HEAD指向的内容是否与指定分支的内容相同
-        String temp = readContentsAsString(HEAD).substring(readContentsAsString(HEAD).length() - 40);
-        String tempBranch = readContentsAsString(join(BRANCH_DIR, name)).substring(readContentsAsString(join(BRANCH_DIR, name)).length() - 40);
-        if (temp.equals(tempBranch) && currentBranchName.equals(name)) {
-            judgeVoidCmdInCheckout(4);
-        } else {
-            restrictedDelete(join(CWD, returnTreeFromCommit(temp).getFileName()));
-            Tree tempTree = returnTreeFromCommit(tempBranch);
-            //System.out.println("fileContent:" + tempTree.getFileContent() + "===" + "filename:" + tempTree.getFileName());
-            // 将切换分支的文件拿到工作目录
-            extractFromBlob(join(BLOB_DIR, tempTree.getFileContent()), join(CWD, tempTree.getFileName()));
+        else{
+            String branchToCommit = readContentsAsString(join(BRANCH_DIR, name));
+            // 检查当前HEAD指向的内容是否与指定分支的内容相同
+            String temp = readContentsAsString(HEAD).substring(readContentsAsString(HEAD).length() - 40);
+            String tempBranch = readContentsAsString(join(BRANCH_DIR, name)).substring(readContentsAsString(join(BRANCH_DIR, name)).length() - 40);
+//            System.out.println(temp + ":::" + tempBranch);
+            if (temp.equals(tempBranch) && currentBranchName.equals(name)) {
+                judgeVoidCmdInCheckout(4);
+            } else {
+                if(readObject(join(COMMIT_DIR, tempBranch), Commit.class).getParent() != null && readObject(join(COMMIT_DIR, temp), Commit.class).getParent() != null){
+                    restrictedDelete(join(CWD, returnTreeFromCommit(temp).getFileName()));
+                    Tree tempTree = returnTreeFromCommit(tempBranch);
+                    //System.out.println("fileContent:" + tempTree.getFileContent() + "===" + "filename:" + tempTree.getFileName());
+                    // 将切换分支的文件拿到工作目录
+                    extractFromBlob(join(BLOB_DIR, tempTree.getFileContent()), join(CWD, tempTree.getFileName()));
 //            writeDecompress(readContents(join(BLOB_DIR, tempTree.getFileContent())), join(CWD, tempTree.getFileName()));
-            // 更新HEAD指向的分支内容为指定的分支内容,同时切换分支
-            writeObject(HEAD, branchToCommit);
-            restrictedDelete(Stages);
+                    // 更新HEAD指向的分支内容为指定的分支内容,同时切换分支
+                    writeObject(HEAD, branchToCommit);
+                    restrictedDelete(Stages);
+                }
+            }
+            join(CURRENTBRANCH_DIR, currentBranchName).renameTo(join(CURRENTBRANCH_DIR, name));
         }
-        join(CURRENTBRANCH_DIR, currentBranchName).renameTo(join(CURRENTBRANCH_DIR, name));
     }
 
     private static Trees returnTreesFromCommit(String commitId) {
@@ -551,35 +561,43 @@ public class Repository {
         if (!Objects.requireNonNull(plainFilenamesIn(COMMIT_DIR)).contains(commitId)) {
             judgeVoidCmdInCheckout(2);
         }
-        // 读取指定提交对象
-        Commit commit = readObject(join(COMMIT_DIR, commitId), Commit.class);
-        // 如果提交对象中的树SHA1不为空，则尝试读取对应的树对象
-        if (commit.getTreeSha1() != null) {
-            Tree tempTree = returnTreeFromCommit(commitId);
-            // 在树对象中查找指定字段名的文件
-            if (tempTree.getFileName().equals(fileName)) {
-                // 如果找到，将文件内容解压并写入当前工作目录
+        else {
+            // 读取指定提交对象
+            Commit commit = readObject(join(COMMIT_DIR, commitId), Commit.class);
+            // 如果提交对象中的树SHA1不为空，则尝试读取对应的树对象
+            if (commit.getTreeSha1() != null) {
+                Tree tempTree = returnTreeFromCommit(commitId);
+                // 在树对象中查找指定字段名的文件
+                if (tempTree.getFileName().equals(fileName)) {
+                    // 如果找到，将文件内容解压并写入当前工作目录
 //                writeDecompress(readContents(join(BLOB_DIR, tempTree.getFileContent())), join(CWD, fileName));
-                extractFromBlob(join(BLOB_DIR, tempTree.getFileContent()), join(CWD, tempTree.getFileName()));
-            } else {
-                // 如果未找到指定字段名的文件，判断为无效命令
-                judgeVoidCmdInCheckout(1);
+                    extractFromBlob(join(BLOB_DIR, tempTree.getFileContent()), join(CWD, tempTree.getFileName()));
+                } else {
+                    // 如果未找到指定字段名的文件，判断为无效命令
+                    judgeVoidCmdInCheckout(1);
+                }
             }
         }
+
     }
 
     private static void judgeVoidCmdInCheckout(int kind) {
         switch (kind) {
             case 1:
                 System.out.println("File does not exist in that commit.");
+                break;
             case 2:
                 System.out.println("No commit with that id exists.");
+                break;
             case 3:
                 System.out.println("No such branch exists.");
+                break;
             case 4:
                 System.out.println("No need to checkout the current branch.");
+                break;
             case 5:
                 System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                break;
         }
     }
 
@@ -867,6 +885,12 @@ contents of the conflicted file with
                 fos.write(buffer, 0, len);
             }
         }
+//        String content = new String(Files.readAllBytes(outputFile.toPath()));
+//        String lastLine = content.substring(content.lastIndexOf("\n") + 1);
+//        if(lastLine.isEmpty()){
+//            content = content.substring(0, content.length() - 1);
+//            Files.write(outputFile.toPath(), content.getBytes(), StandardOpenOption.TRUNCATE_EXISTING);
+//        }
     }
 
     /**
