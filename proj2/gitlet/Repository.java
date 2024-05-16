@@ -137,20 +137,19 @@ public class Repository {
     // TODO: 5.8: 修复tree的bug 检查并修复bug
     private static String dealWithTree() {
         // 获取并校验阶段文件内容
-        String fileContent = Objects.requireNonNull(plainFilenamesIn(Stages)).get(0);
-        // 结合阶段路径和文件名生成临时文件
-        File tempStage = join(Stages, fileContent);
-        // 从临时文件中读取Stage对象
-        Stage stageTemp = readObject(tempStage, Stage.class);
-        // 创建tree对象
-        Tree tempTree = new Tree(stageTemp.getFileName(), fileContent, "blob");
+        Stage stage;
+        Tree tempTree;
         Trees tempTrees = new Trees();
-        // 如果不是空仓库则应该获取之前的仓库状态
-        Commit tempCommit = readObject(join(COMMIT_DIR, getLatestCommit()), Commit.class);
-        if (tempCommit.getParent() != null) {
-            tempTrees = readObject(join(TREE_DIR, tempCommit.getTreeSha1()), Trees.class);
+        Commit tempCommit;
+        for(String s: Objects.requireNonNull(plainFilenamesIn(Stages))){
+            stage = readObject(join(Stages, s), Stage.class);
+            tempTree = new Tree(stage.getFileName(), stage.getFileContent(), "blob");
+            tempCommit = readObject(join(COMMIT_DIR, getLatestCommit()), Commit.class);
+            if (tempCommit.getParent() != null) {
+                tempTrees = readObject(join(TREE_DIR, tempCommit.getTreeSha1()), Trees.class);
+            }
+            tempTrees.Trees.add(tempTree);
         }
-        tempTrees.Trees.add(tempTree);
         String treeSha1 = sha1(sha11(tempTrees));
         writeObject(join(TREE_DIR, treeSha1), tempTrees);
         return treeSha1;
@@ -180,9 +179,7 @@ public class Repository {
             // 更新指针
             updateCurrentBranchAndHEAD(sha1);
             // 此时头指针已经更新但是master指针还没更新
-
         }
-
     }
 
     public static void rm(String fileName) throws IOException {
@@ -258,6 +255,8 @@ public class Repository {
         System.out.println("===");
         System.out.println("commit " + commitName);
         System.out.println("Date: " + commit.getTimestamp());
+//        System.out.println("TreeSha1:" + commit.getTreeSha1());
+//        System.out.println("Parent: " + commit.getParent());
         System.out.println(commit.getMessage());
         System.out.println();
     }
@@ -439,6 +438,12 @@ public class Repository {
      * 清空暂存区
      * */
     private static Tree returnTreeFromCommit(String commitId) {
+        /*TODO:5.14
+        *完善checkout切换分支的功能
+        * 拿到追踪分支时 应该查看的是是否有父提交 如果有父提交则比较异同拿出此提交所进行的更改 如果没有父提交(即初始提交) 此时返回的为空.
+        * 如果一方为初始提交而另一方非初始提交 则返回非初始提交的树
+        * 非 则
+        * */
         Commit commit = readObject(join(COMMIT_DIR, commitId), Commit.class);
         Commit parentCommit = readObject(join(COMMIT_DIR, commit.getParent()), Commit.class);
         Trees tempTrees = readObject(join(TREE_DIR, commit.getTreeSha1()), Trees.class);
@@ -455,32 +460,77 @@ public class Repository {
         return diff.get(0);
     }
 
-    private static void dealWithBranch(String name) throws IOException {
+    private static void dealWithBranch(String name){
+        /*TODO:5:16
+        *debug!!!!!!!!!!!!!!!!!!!!!!!!
+        *
+        *
+        * */
+//        showTree();
         if (!plainFilenamesIn(BRANCH_DIR).contains(name)) {
             judgeVoidCmdInCheckout(3);
         }
         else{
             String branchToCommit = readContentsAsString(join(BRANCH_DIR, name));
             // 检查当前HEAD指向的内容是否与指定分支的内容相同
-            String temp = readContentsAsString(HEAD).substring(readContentsAsString(HEAD).length() - 40);
-            String tempBranch = readContentsAsString(join(BRANCH_DIR, name)).substring(readContentsAsString(join(BRANCH_DIR, name)).length() - 40);
-//            System.out.println(temp + ":::" + tempBranch);
-            if (temp.equals(tempBranch) && currentBranchName.equals(name)) {
+            String CurrentBranch = readContentsAsString(HEAD).substring(readContentsAsString(HEAD).length() - 40);
+            String ImminentBranch = branchToCommit.substring(readContentsAsString(join(BRANCH_DIR, name)).length() - 40);
+            if (CurrentBranch.equals(ImminentBranch) && currentBranchName.equals(name)) {
                 judgeVoidCmdInCheckout(4);
             } else {
-                if(readObject(join(COMMIT_DIR, tempBranch), Commit.class).getParent() != null && readObject(join(COMMIT_DIR, temp), Commit.class).getParent() != null){
-                    restrictedDelete(join(CWD, returnTreeFromCommit(temp).getFileName()));
-                    Tree tempTree = returnTreeFromCommit(tempBranch);
-                    //System.out.println("fileContent:" + tempTree.getFileContent() + "===" + "filename:" + tempTree.getFileName());
-                    // 将切换分支的文件拿到工作目录
-                    extractFromBlob(join(BLOB_DIR, tempTree.getFileContent()), join(CWD, tempTree.getFileName()));
-//            writeDecompress(readContents(join(BLOB_DIR, tempTree.getFileContent())), join(CWD, tempTree.getFileName()));
-                    // 更新HEAD指向的分支内容为指定的分支内容,同时切换分支
-                    writeObject(HEAD, branchToCommit);
-                    restrictedDelete(Stages);
+                join(CURRENTBRANCH_DIR, currentBranchName).renameTo(join(CURRENTBRANCH_DIR, name));
+                writeContents(HEAD, ImminentBranch);
+                //检查两个提交中的文件
+                Commit currentCommit = readObject(join(COMMIT_DIR, CurrentBranch), Commit.class);
+                Commit immientCommit = readObject(join(COMMIT_DIR, ImminentBranch), Commit.class);
+                if(!currentCommit.getTreeSha1().equals(immientCommit.getTreeSha1())){
+                    if((currentCommit.getTreeSha1() == null || immientCommit.getTreeSha1() == null) && !currentCommit.getTreeSha1().equals(immientCommit.getTreeSha1())){
+                        if(currentCommit.getTreeSha1() == null ){
+                            readObject(join(TREE_DIR, immientCommit.getTreeSha1()), Trees.class).Trees.forEach(aTree -> {
+                                try {
+                                    extractFromBlob(join(CWD, aTree.getFileContent()), join(CWD, aTree.getFileName()));
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            });
+                        }else{
+                            readObject(join(TREE_DIR, currentCommit.getTreeSha1()), Trees.class).Trees.forEach(aTree -> restrictedDelete(join(CWD, aTree.getFileName())));
+                        }
+                    }else if(currentCommit.getTreeSha1() != null && immientCommit.getTreeSha1() != null){
+                        Trees fileCurrent = readObject(join(TREE_DIR, currentCommit.getTreeSha1()), Trees.class);
+                        Trees fileImminent = readObject(join(TREE_DIR, immientCommit.getTreeSha1()), Trees.class);
+                        fileImminent.Trees.removeAll(fileCurrent.Trees);
+                        // 拿到仅被当前分支跟踪的文件
+                        List<Tree> diffToImminent = fileCurrent.Trees.stream().filter(aTree ->  fileImminent.Trees.stream().noneMatch(aTree::diffName)).collect(Collectors.toList());
+                        diffToImminent.forEach(aTree -> restrictedDelete(join(CWD, aTree.getFileName())));
+                        //拿到两个分支中都有的文件 并且直接将b中有的文件写入至工作区
+                        List<Tree> same = fileCurrent.Trees.stream().filter(aTree ->  fileImminent.Trees.stream().anyMatch(aTree::diffName)).collect(Collectors.toList());
+                        List<Tree> dealWithSame = same.stream().filter(aTree ->  fileImminent.Trees.stream().anyMatch(aTree::equals)).collect(Collectors.toList());
+//                        dealWithSame.removeAll(fileCurrent.Trees);
+                        dealWithSame.forEach(cTree->{
+                            try {
+                                extractFromBlob(join(BLOB_DIR, cTree.getFileContent()), join(CWD, cTree.getFileName()));
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+                        // 拿到仅被待转分支跟踪的文件
+                        List<Tree> diffToCurrent = fileImminent.Trees.stream().filter(aTree ->  fileCurrent.Trees.stream().noneMatch(aTree::diffName)).collect(Collectors.toList());
+                        diffToCurrent.forEach(bTree -> {
+                            try {
+                                if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0 && readObject(join(Stages, Objects.requireNonNull(plainFilenamesIn(Stages)).get(0)),Stage.class).getFileName().equals(bTree.getFileName())){
+                                    judgeVoidCmdInCheckout(5);
+                                }else{
+                                    extractFromBlob(join(BLOB_DIR, bTree.getFileContent()), join(CWD, bTree.getFileName()));
+                                }
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+                    }
                 }
+                restrictedDelete(Stages);
             }
-            join(CURRENTBRANCH_DIR, currentBranchName).renameTo(join(CURRENTBRANCH_DIR, name));
         }
     }
 

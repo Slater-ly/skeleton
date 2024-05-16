@@ -50,4 +50,7 @@ public class Tree implements Serializable {
     public int hashCode() {
         return Objects.hash(fileName, fileContent, typeOfReference);
     }
+    public boolean diffName(Tree tree){
+        return fileName.equals(tree.getFileName());
+    }
 }
