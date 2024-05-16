@@ -483,9 +483,8 @@ public class Repository {
                 //检查两个提交中的文件
                 Commit currentCommit = readObject(join(COMMIT_DIR, CurrentBranch), Commit.class);
                 Commit immientCommit = readObject(join(COMMIT_DIR, ImminentBranch), Commit.class);
-                if(!currentCommit.getTreeSha1().equals(immientCommit.getTreeSha1())){
-                    if((currentCommit.getTreeSha1() == null || immientCommit.getTreeSha1() == null) && !currentCommit.getTreeSha1().equals(immientCommit.getTreeSha1())){
-                        if(currentCommit.getTreeSha1() == null ){
+                    if(currentCommit.getTreeSha1() == null || immientCommit.getTreeSha1() == null){
+                        if(currentCommit.getTreeSha1() == null  && immientCommit.getTreeSha1() != null){
                             readObject(join(TREE_DIR, immientCommit.getTreeSha1()), Trees.class).Trees.forEach(aTree -> {
                                 try {
                                     extractFromBlob(join(CWD, aTree.getFileContent()), join(CWD, aTree.getFileName()));
@@ -493,42 +492,46 @@ public class Repository {
                                     throw new RuntimeException(e);
                                 }
                             });
-                        }else{
+                        }else if(currentCommit.getTreeSha1() != null  && immientCommit.getTreeSha1() == null){
                             readObject(join(TREE_DIR, currentCommit.getTreeSha1()), Trees.class).Trees.forEach(aTree -> restrictedDelete(join(CWD, aTree.getFileName())));
                         }
                     }else if(currentCommit.getTreeSha1() != null && immientCommit.getTreeSha1() != null){
-                        Trees fileCurrent = readObject(join(TREE_DIR, currentCommit.getTreeSha1()), Trees.class);
-                        Trees fileImminent = readObject(join(TREE_DIR, immientCommit.getTreeSha1()), Trees.class);
-                        fileImminent.Trees.removeAll(fileCurrent.Trees);
-                        // 拿到仅被当前分支跟踪的文件
-                        List<Tree> diffToImminent = fileCurrent.Trees.stream().filter(aTree ->  fileImminent.Trees.stream().noneMatch(aTree::diffName)).collect(Collectors.toList());
-                        diffToImminent.forEach(aTree -> restrictedDelete(join(CWD, aTree.getFileName())));
-                        //拿到两个分支中都有的文件 并且直接将b中有的文件写入至工作区
-                        List<Tree> same = fileCurrent.Trees.stream().filter(aTree ->  fileImminent.Trees.stream().anyMatch(aTree::diffName)).collect(Collectors.toList());
-                        List<Tree> dealWithSame = same.stream().filter(aTree ->  fileImminent.Trees.stream().anyMatch(aTree::equals)).collect(Collectors.toList());
-//                        dealWithSame.removeAll(fileCurrent.Trees);
-                        dealWithSame.forEach(cTree->{
-                            try {
-                                extractFromBlob(join(BLOB_DIR, cTree.getFileContent()), join(CWD, cTree.getFileName()));
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
-                        // 拿到仅被待转分支跟踪的文件
-                        List<Tree> diffToCurrent = fileImminent.Trees.stream().filter(aTree ->  fileCurrent.Trees.stream().noneMatch(aTree::diffName)).collect(Collectors.toList());
-                        diffToCurrent.forEach(bTree -> {
-                            try {
-                                if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0 && readObject(join(Stages, Objects.requireNonNull(plainFilenamesIn(Stages)).get(0)),Stage.class).getFileName().equals(bTree.getFileName())){
-                                    judgeVoidCmdInCheckout(5);
-                                }else{
-                                    extractFromBlob(join(BLOB_DIR, bTree.getFileContent()), join(CWD, bTree.getFileName()));
+                        if(!currentCommit.getTreeSha1().equals(immientCommit.getTreeSha1())){
+//                        System.out.println("===================");
+//                        showTree();
+                            Trees fileCurrent = readObject(join(TREE_DIR, currentCommit.getTreeSha1()), Trees.class);
+                            Trees fileImminent = readObject(join(TREE_DIR, immientCommit.getTreeSha1()), Trees.class);
+                            fileImminent.Trees.removeAll(fileCurrent.Trees);
+                            // 拿到仅被当前分支跟踪的文件
+                            List<Tree> diffToImminent = fileCurrent.Trees.stream().filter(aTree ->  fileImminent.Trees.stream().noneMatch(aTree::diffName)).collect(Collectors.toList());
+                            diffToImminent.forEach(aTree -> restrictedDelete(join(CWD, aTree.getFileName())));
+                            //拿到两个分支中都有的文件 并且直接将b中有的文件写入至工作区
+                            // 拿到相同文件名的文件
+                            List<Tree> same = fileImminent.Trees.stream().filter(aTree ->  fileCurrent.Trees.stream().anyMatch(aTree::diffName)).collect(Collectors.toList());
+                            // 删除掉仅在当前分支有的文件
+                            List<Tree> dealWithSame = same.stream().filter(aTree ->  fileCurrent.Trees.stream().noneMatch(aTree::equals)).collect(Collectors.toList());
+                            dealWithSame.forEach(cTree->{
+                                try {
+                                    extractFromBlob(join(BLOB_DIR, cTree.getFileContent()), join(CWD, cTree.getFileName()));
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
                                 }
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
+                            });
+                            // 拿到仅被待转分支跟踪的文件
+                            List<Tree> diffToCurrent = fileImminent.Trees.stream().filter(aTree ->  fileCurrent.Trees.stream().noneMatch(aTree::diffName)).collect(Collectors.toList());
+                            diffToCurrent.forEach(bTree -> {
+                                try {
+                                    if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0 && readObject(join(Stages, Objects.requireNonNull(plainFilenamesIn(Stages)).get(0)),Stage.class).getFileName().equals(bTree.getFileName())){
+                                        judgeVoidCmdInCheckout(5);
+                                    }else{
+                                        extractFromBlob(join(BLOB_DIR, bTree.getFileContent()), join(CWD, bTree.getFileName()));
+                                    }
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            });
+                        }
                     }
-                }
                 restrictedDelete(Stages);
             }
         }
