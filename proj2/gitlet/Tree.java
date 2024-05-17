@@ -53,4 +53,7 @@ public class Tree implements Serializable {
     public boolean diffName(Tree tree){
         return fileName.equals(tree.getFileName());
     }
+    public void showTree(){
+        System.out.println(this.toString());
+    }
 }
