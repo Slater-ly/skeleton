@@ -278,6 +278,7 @@ public class Repository {
     }
 
     public static void status() {
+        checkIfInitialized();
         printCaption("Branch");
         System.out.println("*" + currentBranchName);
         System.out.println();
@@ -315,6 +316,12 @@ public class Repository {
         printCaption("Untracked Files");
 //        showUntrackedFiles();
         System.out.println();
+    }
+    public static void checkIfInitialized() {
+        if (!GITLET_DIR.exists()) {
+            System.out.println("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
     }
     private static void checkDelByUser() {
         Trees tempTree = readObject(join(TREE_DIR, readObject(join(COMMIT_DIR,getLatestCommit()), Commit.class).getTreeSha1()), Trees.class);
@@ -659,10 +666,10 @@ public class Repository {
                 } else {
                     // 如果未找到指定字段名的文件，判断为无效命令
                     judgeVoidCmdInCheckout(1);
+                    exit(0);
                 }
             }
         }
-
     }
 
     private static void judgeVoidCmdInCheckout(int kind) {
@@ -698,59 +705,62 @@ public class Repository {
     }
 
     public static void reset(String commitID) throws IOException {
+        /*
+         * 如有未跟踪的文件 打印提示信息
+        *  拿到对应commit跟踪的文件
+        *  还原这些文件
+        *  将当前分支的头指针移到给定提交
+        * */
         if (!Objects.requireNonNull(plainFilenamesIn(COMMIT_DIR)).contains(commitID)) {
             System.out.println("No commit with that id exists.");
         }
-        if (TREE_DIR.listFiles() != null) {
-            Trees a = readObject(join(TREE_DIR, readObject(join(COMMIT_DIR, commitID), Commit.class).getTreeSha1()), Trees.class);
-            Tree tempTree;
-            tempTree = returnTreeFromCommit(commitID); // 从文件中读取tree对象
-            restrictedDelete(CWD);
-            // 检出文件
-            checkOutFileWithCommit(commitID, tempTree.getFileName());
-            // 清空暂存区
-            if(Objects.requireNonNull(Stages.listFiles()).length != 0){
-                restrictedDelete(join(Stages, Objects.requireNonNull(plainFilenamesIn(Stages)).get(0)));
-
+        else{
+//            updateCurrentBranchAndHEAD(commitID);
+//            checkout(currentBranchName);
+            // 拿到给定提交的文件
+            Trees givenTree = readObject(join(TREE_DIR, readObject(join(COMMIT_DIR, commitID), Commit.class).getTreeSha1()), Trees.class);
+            List<String> fileNames = plainFilenamesIn(CWD);
+            if(givenTree.Trees.stream().noneMatch(tree -> fileNames.contains(tree.getFileName()))){
+                if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0){
+                    List<Stage> aa = new ArrayList<>(Collections.singletonList(new Stage("111", "222", 3)));
+                    Objects.requireNonNull(plainFilenamesIn(Stages)).forEach(aStage ->{
+                        Stage a = readObject(join(Stages, aStage),Stage.class);
+                        if(a != null){
+                            aa.add(a);
+                        }
+                    });
+                    aa.remove(0);
+                    if(aa.stream().anyMatch(stage -> fileNames.equals(stage.getFileName()) && !stage.getFileContent().equals(sha1(readContentsAsString(join(CWD, stage.getFileName())))))){
+                        judgeVoidCmdInCheckout(5);
+                        exit(0);
+                    }
+                    Objects.requireNonNull(plainFilenamesIn(Stages)).forEach(all->restrictedDelete(join(Stages,all)));
+                }else{
+                    judgeVoidCmdInCheckout(5);
+                    exit(0);
+                }
             }
-            // 移动分支头
-            updateCurrentBranchAndHEAD(commitID);
+            else{
+                updateCurrentBranchAndHEAD(commitID);
+                Objects.requireNonNull(plainFilenamesIn(Stages)).forEach(all->restrictedDelete(join(Stages,all)));
+                givenTree.Trees.forEach(aTree -> {
+                    try {
+                        if(fileNames.contains(aTree.getFileName())){
+                            if(!sha1(readContentsAsString(join(CWD, aTree.getFileName()))).equals(aTree.getFileContent())){
+                                judgeVoidCmdInCheckout(5);
+                            }
+                            else {
+                                checkOutFileWithCommit(commitID, aTree.getFileName());
+                                exit(0);
+                            }
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            }
         }
     }
-
-    /*
-    The split point is a latest common ancestor of the current and given branch heads: - A common ancestor is a commit to which there is a
-    path (of 0 or more parent pointers) from both branch heads. - A latest common ancestor is a common ancestor that is not an ancestor of
-    any other common ancestor. For example, although the leftmost commit in the diagram above is a common ancestor of master and branch,
-    it is also an ancestor of the commit immediately to its right, so it is not a latest common ancestor. If the split point is the same
-    commit as the given branch, then we do nothing; the merge is complete, and the operation ends with the message Given branch is an ancestor
-    of the current branch. If the split point is the current branch, then the effect is to check out the given branch, and the operation ends
-     after printing the message Current branch fast-forwarded. Otherwise, we continue with the steps below.
-Any files that have been modified in the given branch since the split point, but not modified in the current branch since the split point
- should be changed to their versions in the given branch (checked out from the commit at the front of the given branch). These files should
-  then all be automatically staged. To clarify, if a file is “modified in the given branch since the split point” this means the version of
-  the file as it exists in the commit at the front of the given branch has different content from the version of the file at the split point.
-   Remember: blobs are content addressable!
-
-Any files that have been modified in the current branch but not in the given branch since the split point should stay as they are.
-
-Any files that have been modified in both the current and given branch in the same way (i.e., both files now have the same content or
- were both removed) are left unchanged by the merge. If a file was removed from both the current and given branch, but a file of the
- same name is present in the working directory, it is left alone and continues to be absent (not tracked nor staged) in the merge.
-
-Any files that were not present at the split point and are present only in the current branch should remain as they are.
-
-Any files that were not present at the split point and are present only in the given branch should be checked out and staged.
-
-Any files present at the split point, unmodified in the current branch, and absent in the given branch should be removed (and untracked).
-
-Any files present at the split point, unmodified in the given branch, and absent in the current branch should remain absent.
-
-Any files modified in different ways in the current and given branches are in conflict. “Modified in different ways” can mean that
-the contents of both are changed and different from other, or the contents of one are changed and the other file is deleted, or
-the file was absent at the split point and has different contents in the given and current branches. In this case, replace the
-contents of the conflicted file with
-    * */
     /*
      * 如何确定是否存在承接关系呢？
      * 维护每个分支与头部提交的对应关系

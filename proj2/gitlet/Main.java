@@ -25,94 +25,100 @@ public class Main {
         if (args == null) {
             throw new GitletException("Please enter a command.");
         } else {
-            String firstArg = args[0];
-            switch (firstArg) {
-                case "init":
-                    // TODO: handle the `init` command
-                    try {
-                        Repository.init();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    break;
-                case "add":
-                    try {
-                        Repository.add(args[1]);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
+            if(args.length == 0) {
+                System.out.println("Please enter a command.");
+                System.exit(0);
+            }
+            else {
+                String firstArg = args[0];
+                switch (firstArg) {
+                    case "init":
+                        // TODO: handle the `init` command
+                        try {
+                            Repository.init();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                        break;
+                    case "add":
+                        try {
+                            Repository.add(args[1]);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
 
-                    // TODO: handle the `add [filename]` command
-                    break;
-                // TODO: FILL THE REST IN
-                case "commit":
-                    try {
-                        if(args.length == 1){
-                            System.out.println("Please enter a commit message.");
+                        // TODO: handle the `add [filename]` command
+                        break;
+                    // TODO: FILL THE REST IN
+                    case "commit":
+                        try {
+                            if(args.length == 1){
+                                System.out.println("Please enter a commit message.");
+                            }
+                            else{
+                                Repository.commit(args[1]);
+                            }
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
                         }
-                        else{
-                            Repository.commit(args[1]);
+                        break;
+                    case "rm":
+                        try {
+                            Repository.rm(args[1]);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
                         }
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    break;
-                case "rm":
-                    try {
-                        Repository.rm(args[1]);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    break;
-                case "log":
-                    Repository.Log();
-                    break;
-                case "global-log":
-                    Repository.globalLog();
-                    break;
-                case "find":
-                    Repository.find(args[1]);
-                    break;
-                case "status":
-                    Repository.status();
-                    break;
-                case "checkout":
-                    try {
-                        Repository.checkout(args);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    break;
-                case "branch":
-                    try {
-                        Repository.branch(args[1]);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    break;
-                case "rm-branch":
-                    try {
-                        Repository.rmBranch(args[1]);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    break;
-                case "reset":
-                    try {
-                        Repository.reset(args[1]);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    break;
-                case "merge":
-                    try {
-                        Repository.merge(args[1]);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    break;
-                default:
-                    System.out.println("No command with that name exists.");
+                        break;
+                    case "log":
+                        Repository.Log();
+                        break;
+                    case "global-log":
+                        Repository.globalLog();
+                        break;
+                    case "find":
+                        Repository.find(args[1]);
+                        break;
+                    case "status":
+                        Repository.status();
+                        break;
+                    case "checkout":
+                        try {
+                            Repository.checkout(args);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                        break;
+                    case "branch":
+                        try {
+                            Repository.branch(args[1]);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                        break;
+                    case "rm-branch":
+                        try {
+                            Repository.rmBranch(args[1]);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                        break;
+                    case "reset":
+                        try {
+                            Repository.reset(args[1]);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                        break;
+                    case "merge":
+                        try {
+                            Repository.merge(args[1]);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                        break;
+                    default:
+                        System.out.println("No command with that name exists.");
+                }
             }
         }
     }
