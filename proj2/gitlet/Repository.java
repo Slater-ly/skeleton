@@ -255,8 +255,8 @@ public class Repository {
         System.out.println("===");
         System.out.println("commit " + commitName);
         System.out.println("Date: " + commit.getTimestamp());
-//        System.out.println("TreeSha1:" + commit.getTreeSha1());
-//        System.out.println("Parent: " + commit.getParent());
+        System.out.println("TreeSha1:" + commit.getTreeSha1());
+        System.out.println("Parent: " + commit.getParent());
         System.out.println(commit.getMessage());
         System.out.println();
     }
@@ -769,16 +769,18 @@ public class Repository {
         // 当前分支的commit
         String currentBranchCommit = readContentsAsString(HEAD).substring(readContentsAsString(HEAD).length() - 40);
         int flagChangeIfOut = 0;
-        String givenBranchCommit = readContentsAsString(join(BRANCH_DIR, branchName));
+        String givenBranchCommit = readContentsAsString(join(BRANCH_DIR, branchName)).substring(readContentsAsString(join(BRANCH_DIR, branchName)).length() - 40);
         String commit;
-        for (commit = currentBranchCommit; ; commit = readObject(join(COMMIT_DIR, commit), Commit.class).getParent()) {
+//        Repository.globalLog();
+        for (commit = currentBranchCommit;commit != null; commit = readObject(join(COMMIT_DIR, commit), Commit.class).getParent()) {
+//            System.out.println("ssss" + commit + "tttt" + givenBranchCommit);
             if (commit.equals(givenBranchCommit)) {
                 commitMessageOfMerge(1);
                 flagChangeIfOut = 1;
                 break;
             }
         }
-        for (commit = givenBranchCommit; ; commit = readObject(join(COMMIT_DIR, commit), Commit.class).getParent()) {
+        for (commit = givenBranchCommit;commit != null; commit = readObject(join(COMMIT_DIR, commit), Commit.class).getParent()) {
             if (commit.equals(currentBranchCommit)) {
                 checkout(branchName);
                 commitMessageOfMerge(2);
