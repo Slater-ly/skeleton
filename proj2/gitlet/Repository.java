@@ -705,7 +705,7 @@ public class Repository {
             // 读取指定提交对象
             Commit commit = readObject(join(COMMIT_DIR, commitId), Commit.class);
             boolean flag = true;
-            // 如果提交对象中的树SHA1不为空，则尝试读取对应的树对象
+            // 如果提交对象中的树SHA1不为空，则尝试读取对应的树对象sssss
             if (commit.getTreeSha1() != null) {
                 List<Tree> tempTrees = returnTreeFromCommit(commitId);
 //                System.out.println("tempTree");
