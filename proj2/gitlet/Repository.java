@@ -4,6 +4,8 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.Deflater;
@@ -150,6 +152,9 @@ public class Repository {
 //            System.out.println("fileName" + stage.getFileName() + "+++++fileContent" + stage.getFileContent());
             tempTree = new Tree(stage.getFileName(), stage.getFileContent(), "blob");
             if(stage.getFileStatus() != 1){
+                if(tempTrees.Trees.stream().anyMatch(tempTree::diffName)){
+                    tempTrees.Trees.removeIf(tempTree::diffName);
+                }
                 tempTrees.Trees.add(tempTree);
             }
             else {
@@ -167,6 +172,11 @@ public class Repository {
         else{
             judgeVoidCommit(message);
             Commit tempCommit = new Commit(message, null, dealWithTree());
+            if(message.startsWith("Merge")){
+//                System.out.println(message);
+                tempCommit.setMergeFlag(true);
+                tempCommit.setParents(returnCurrentAndGivenCommit(returnGivenBranchName(tempCommit.getMessage())));
+            }
             // 将commit添加到文件夹内
             if (Objects.requireNonNull(plainFilenamesIn(COMMIT_DIR)).size() != 0) {
                 tempCommit.setParent(getLatestCommit());
@@ -267,10 +277,20 @@ public class Repository {
     private static void  showCommit(Commit commit, String commitName) {
         System.out.println("===");
         System.out.println("commit " + commitName);
+        if(commit.isMergeFlag()){
+            System.out.println("Merge: " + commit.getParents().get(0).substring(0, 7) + " " + commit.getParents().get(1).substring(0, 7));
+//            System.out.println(".");
+        }
         System.out.println("Date: " + commit.getTimestamp());
 //        System.out.println("TreeSha1:" + commit.getTreeSha1());
 //        System.out.println("Parent: " + commit.getParent());
-        System.out.println(commit.getMessage());
+        if(commit.isMergeFlag()){
+            System.out.print(commit.getMessage());
+            System.out.println(".");
+        }
+        else{
+            System.out.println(commit.getMessage());
+        }
         System.out.println();
     }
 
@@ -457,7 +477,7 @@ public class Repository {
      * 如果当前HEAD的提交对应的文件有与这些文件不同的则删除
      * 清空暂存区
      * */
-    private static Tree returnTreeFromCommit(String commitId) {
+    private static List<Tree> returnTreeFromCommit(String commitId) {
         /*TODO:5.14
          *完善checkout切换分支的功能
          * 拿到追踪分支时 应该查看的是是否有父提交 如果有父提交则比较异同拿出此提交所进行的更改 如果没有父提交(即初始提交) 此时返回的为空.
@@ -476,8 +496,10 @@ public class Repository {
 //            System.out.println(tempParentTrees.Trees.stream().map(Tree::toString).collect(Collectors.joining("\n")));
 //            System.out.println("================");
         }
+//        System.out.println("diff");
+//        diff.forEach(Tree::showTree);
 //        System.out.println(diff.stream().map(Tree::toString).collect(Collectors.joining("\n")));
-        return diff.get(0);
+        return diff;
     }
 
     private static void dealWithBranch(String name){
@@ -507,6 +529,7 @@ public class Repository {
                 if(currentCommit.getTreeSha1() == null || immientCommit.getTreeSha1() == null){
                     if(currentCommit.getTreeSha1() == null  && immientCommit.getTreeSha1() != null){
                         if(!plainFilenamesIn(CWD).isEmpty()){
+//                            System.out.println("ddd");
                             judgeVoidCmdInCheckout(5);
                         }
                         readObject(join(TREE_DIR, immientCommit.getTreeSha1()), Trees.class).Trees.forEach(aTree -> {
@@ -560,6 +583,7 @@ public class Repository {
 //                        diffToImminent.forEach(Tree::showTree);
                         diffToImminent.forEach(bTree -> {
                             if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0 && readObject(join(Stages, Objects.requireNonNull(plainFilenamesIn(Stages)).get(0)),Stage.class).getFileName().equals(bTree.getFileName())){
+//                                System.out.println("ttt");
                                 judgeVoidCmdInCheckout(5);
                             }else{
                                 restrictedDelete(join(CWD, bTree.getFileName()));
@@ -589,7 +613,7 @@ public class Repository {
 //            System.out.println(sha1(readContentsAsString(join(CWD, kk.get(0).getFileName()))));
             if(kk.stream().anyMatch(aTree ->!sha1(readContentsAsString(join(CWD, aTree.getFileName()))).equals(aTree.getFileContent()))){
                 judgeVoidCmdInCheckout(5);
-//                System.out.println("sss");
+                System.out.println("sss");
                 exit(0);
             }
         }
@@ -672,6 +696,7 @@ public class Repository {
      * @throws IOException 如果读取或写入文件时发生错误
      */
     private static void checkOutFileWithCommit(String commitId, String fileName) throws IOException {
+//        System.out.println("tempTree");
         // 检查提交ID是否存在于提交目录中
         if (!Objects.requireNonNull(plainFilenamesIn(COMMIT_DIR)).contains(commitId)) {
             judgeVoidCmdInCheckout(2);
@@ -679,19 +704,26 @@ public class Repository {
         else {
             // 读取指定提交对象
             Commit commit = readObject(join(COMMIT_DIR, commitId), Commit.class);
+            boolean flag = true;
             // 如果提交对象中的树SHA1不为空，则尝试读取对应的树对象
             if (commit.getTreeSha1() != null) {
-                Tree tempTree = returnTreeFromCommit(commitId);
-                // 在树对象中查找指定字段名的文件
-                if (tempTree.getFileName().equals(fileName)) {
-                    // 如果找到，将文件内容解压并写入当前工作目录
+                List<Tree> tempTrees = returnTreeFromCommit(commitId);
+//                System.out.println("tempTree");
+//                tempTrees.forEach(Tree::showTree);
+                for(Tree tempTree:tempTrees){
+                    if (tempTree.getFileName().equals(fileName)) {
+                        // 如果找到，将文件内容解压并写入当前工作目录
 //                writeDecompress(readContents(join(BLOB_DIR, tempTree.getFileContent())), join(CWD, fileName));
-                    extractFromBlob(join(BLOB_DIR, tempTree.getFileContent()), join(CWD, tempTree.getFileName()));
-                } else {
-                    // 如果未找到指定字段名的文件，判断为无效命令
+                        extractFromBlob(join(BLOB_DIR, tempTree.getFileContent()), join(CWD, tempTree.getFileName()));
+                        flag = false;
+                        break;
+                    }
+                }
+                if(flag){
                     judgeVoidCmdInCheckout(1);
                     exit(0);
                 }
+                // 在树对象中查找指定字段名的文件
             }
         }
     }
@@ -790,6 +822,7 @@ public class Repository {
      * 维护每个分支与头部提交的对应关系
      * */
     public static void merge(String branchName) throws IOException {
+        //TODO:debug!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         // 当前分支的commit
         String currentBranchCommit = returnCurrentAndGivenCommit(branchName).get(0);
         String givenBranchCommit = returnCurrentAndGivenCommit(branchName).get(1);
@@ -815,6 +848,8 @@ public class Repository {
                 break;
             }
         }
+        String s = ("Merged " + branchName + " into " + currentBranchName);
+        Repository.commit(s);
     }
     private static List<String> returnCurrentAndGivenCommit(String branchName){
         List<String> a = new ArrayList<>();
@@ -822,10 +857,22 @@ public class Repository {
         a.add(readContentsAsString(join(BRANCH_DIR, branchName)).substring(readContentsAsString(join(BRANCH_DIR, branchName)).length() - 40));
         return a;
     }
+    private static String returnGivenBranchName(String mergedMessage) {
+        // 使用正则表达式找到"merged"和"into"之间的内容
+        String patternString = "(?<=Merged\\s)[^\\s]+(?=\\sinto)";
+        Pattern pattern = Pattern.compile(patternString);
+        Matcher matcher = pattern.matcher(mergedMessage);
+
+        if (matcher.find()) {
+            return matcher.group();
+        } else {
+            throw new IllegalArgumentException("Invalid merge message format.");
+        }
+    }
 
     private static void findModifiedFiles(String commitOfSplitPoint, String branchName) throws IOException {
-        dealWithFailureCase(branchName);
-        String currentBranchCommit = readContentsAsString(HEAD).substring(readContentsAsString(HEAD).length() - 40);
+//        dealWithFailureCase(branchName);
+//        String currentBranchCommit = readContentsAsString(HEAD).substring(readContentsAsString(HEAD).length() - 40);
         String givenBranchCommit = readContentsAsString(join(BRANCH_DIR, branchName)).substring(readContentsAsString(join(BRANCH_DIR, branchName)).length() - 40);
 //        Map<String, Map<String, String>> sha1ToFileNameForGivenBranch = findFiles(givenBranchCommit, commitOfSplitPoint);
 //        Map<String, Map<String, String>> sha1ToFileNameForOriginalBranch = findFiles(currentBranchCommit, commitOfSplitPoint);
@@ -890,6 +937,12 @@ public class Repository {
                 filter(aTree -> splitFilesTrees.Trees.stream().noneMatch(aTree::equals) &&
                         currentFileTrees.Trees.stream().noneMatch(aTree::equals))
                 .collect(Collectors.toList());
+//        System.out.println("existAfterSplitPointInGivenBranch");
+//        existAfterSplitPointInGivenBranch.forEach(Tree::showTree);
+//        System.out.println("currentFileTrees");
+//        currentFileTrees.Trees.forEach(Tree::showTree);
+//        System.out.println("givenFileTrees");
+//        givenFileTrees.Trees.forEach(Tree::showTree);
         existAfterSplitPointInGivenBranch.forEach(tree -> {
             try {
                 checkOutFileWithCommit(givenBranchCommit, tree.getFileName());
@@ -915,7 +968,7 @@ public class Repository {
 
     }
 
-    private static void SolveConflictFile(Trees currentFileTrees, Trees givenFileTrees, Trees splitFilesTrees) {
+    private static void SolveConflictFile(Trees currentFileTrees, Trees givenFileTrees, Trees splitFilesTrees) throws IOException {
     /*找到三种类型的文件
     * 内容冲突/状态冲突
     *
@@ -925,11 +978,34 @@ public class Repository {
         List<Tree> conflictContent = currentFileTrees.Trees.stream()
                 .filter(aTree -> givenFileTrees.Trees.stream().anyMatch(aTree::sameNameAndDiffContent))
                 .collect(Collectors.toList());
+        if(conflictContent.size() != 0){
+            System.out.println("Encountered a merge conflict.");
+            String content;
+            String content1;
+            for(Tree tree : conflictContent){
+                String result = "";
+//                System.out.println("aaaaaaa");
+//                System.out.println(join(CWD, tree.getFileName()).toString());
+//                System.out.println("currentFileTrees:" + tree.getFileContent());
+                extractFromBlob(join(BLOB_DIR, tree.getFileContent()), join(CWD, tree.getFileName()));
+                content = readContentsAsString(join(CWD, tree.getFileName()));
+//                System.out.println("content:" + content);
+                String givenFileContent = givenFileTrees.Trees.stream().filter(tree::sameNameAndDiffContent).collect(Collectors.toList()).get(0).getFileContent();
+//                System.out.println("givenFileTrees:" + givenFileContent);
+                extractFromBlob(join(BLOB_DIR, givenFileContent), join(CWD, tree.getFileName()));
+                content1 = readContentsAsString(join(CWD, tree.getFileName()));
+//                System.out.println("content1" + content1);
+                result += "<<<<<<< HEAD\n" + content + "=======\n" + content1 + ">>>>>>>\n";
+                writeContents(join(CWD, tree.getFileName()), result);
+            }
+
+        }
         // 2.状态冲突
-        List<Tree> conflictStatus = currentFileTrees.Trees.stream()
-                .filter(aTree -> givenFileTrees.Trees.stream().anyMatch(aTree::equals))
-                .collect(Collectors.toList());
+//        List<Tree> conflictStatus = currentFileTrees.Trees.stream()
+//                .filter(aTree -> givenFileTrees.Trees.stream().anyMatch(aTree::equals))
+//                .collect(Collectors.toList());
     }
+
 
     private static void dealWithFailureCase(String branchName) {
         if (Objects.requireNonNull(Stages.listFiles()).length != 0) {
@@ -972,12 +1048,12 @@ public class Repository {
         }
     }
 
-    private static void rmInGivenBranchAndUnModifiedInOriginalBranch(String commitOfSplitPoint, Map<String, Map<String, String>> sha1ToFileNameForGivenBranch, Map<String, Map<String, String>> sha1ToFileNameForOriginalBranch) {
-        String splitTreeFileContent = returnTreeFromCommit(commitOfSplitPoint).getFileContent();
-        if (!getSet(sha1ToFileNameForGivenBranch).contains(splitTreeFileContent) && getSet(sha1ToFileNameForOriginalBranch).contains(splitTreeFileContent)) {
-            restrictedDelete(join(Stages, splitTreeFileContent));
-        }
-    }
+//    private static void rmInGivenBranchAndUnModifiedInOriginalBranch(String commitOfSplitPoint, Map<String, Map<String, String>> sha1ToFileNameForGivenBranch, Map<String, Map<String, String>> sha1ToFileNameForOriginalBranch) {
+//        String splitTreeFileContent = returnTreeFromCommit(commitOfSplitPoint).getFileContent();
+//        if (!getSet(sha1ToFileNameForGivenBranch).contains(splitTreeFileContent) && getSet(sha1ToFileNameForOriginalBranch).contains(splitTreeFileContent)) {
+//            restrictedDelete(join(Stages, splitTreeFileContent));
+//        }
+//    }
 
     private static void findConflictFileAndResolve(Map<String, Map<String, String>> sha1ToFileNameForGivenBranch, Map<String, Map<String, String>> sha1ToFileNameForOriginalBranch, String givenBranchName) throws IOException {
         // 找到冲突文件
@@ -1026,24 +1102,24 @@ public class Repository {
         return a.values().stream().flatMap(innerMap -> innerMap.keySet().stream()).collect(Collectors.toSet());
     }
 
-    private static Map<String, Map<String, String>> findFiles(String start, String commitOfSplitPoint) {
-        System.out.println("==============================");
-        Map<String, Map<String, String>> re = new HashMap<>();
-        String commit;
-        Tree tempTree;
-        Map<String, String> a = new HashMap<>();
-        for (commit = start; !Objects.equals(commit, commitOfSplitPoint); commit = readObject(join(COMMIT_DIR, commit), Commit.class).getParent()) {
-            tempTree = returnTreeFromCommit(start);
-            System.out.println("fileName:" + tempTree.getFileName() + "===fileContent" + tempTree.getFileContent() );
-            a.put(tempTree.getFileName(), tempTree.getFileContent());
-            re.put(commit, a);
-            a.clear();
-        }
-        System.out.println("commitOfSplitPoint" + commitOfSplitPoint);
-        System.out.println(re);
-        System.out.println("==============================");
-        return re;
-    }
+//    private static Map<String, Map<String, String>> findFiles(String start, String commitOfSplitPoint) {
+//        System.out.println("==============================");
+//        Map<String, Map<String, String>> re = new HashMap<>();
+//        String commit;
+//        Tree tempTree;
+//        Map<String, String> a = new HashMap<>();
+//        for (commit = start; !Objects.equals(commit, commitOfSplitPoint); commit = readObject(join(COMMIT_DIR, commit), Commit.class).getParent()) {
+//            tempTree = returnTreeFromCommit(start);
+//            System.out.println("fileName:" + tempTree.getFileName() + "===fileContent" + tempTree.getFileContent() );
+//            a.put(tempTree.getFileName(), tempTree.getFileContent());
+//            re.put(commit, a);
+//            a.clear();
+//        }
+//        System.out.println("commitOfSplitPoint" + commitOfSplitPoint);
+//        System.out.println(re);
+//        System.out.println("==============================");
+//        return re;
+//    }
 
     private static void commitMessageOfMerge(int flag) {
         switch (flag) {
