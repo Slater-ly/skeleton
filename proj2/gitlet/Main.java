@@ -116,6 +116,9 @@ public class Main {
                             throw new RuntimeException(e);
                         }
                         break;
+                    case "showTree":
+                        Repository.showTree();
+                        break;
                     default:
                         System.out.println("No command with that name exists.");
                 }
