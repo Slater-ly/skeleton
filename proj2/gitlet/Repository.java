@@ -203,8 +203,8 @@ public class Repository {
             // 更新指针
             updateCurrentBranchAndHEAD(sha1);
             // 此时头指针已经更新但是master指针还没更新
-            System.out.println("111222333444");
-            showTree();
+//            System.out.println("111222333444");
+//            showTree();
         }
     }
 
@@ -292,8 +292,8 @@ public class Repository {
 //            System.out.println(".");
         }
         System.out.println("Date: " + commit.getTimestamp());
-        System.out.println("TreeSha1:" + commit.getTreeSha1());
-        System.out.println("Parent: " + commit.getParent());
+//        System.out.println("TreeSha1:" + commit.getTreeSha1());
+//        System.out.println("Parent: " + commit.getParent());
         if(commit.isMergeFlag()){
             System.out.print(commit.getMessage());
             System.out.println(".");
@@ -626,7 +626,7 @@ public class Repository {
 //            System.out.println(sha1(readContentsAsString(join(CWD, kk.get(0).getFileName()))));
             if(kk.stream().anyMatch(aTree ->!sha1(readContentsAsString(join(CWD, aTree.getFileName()))).equals(aTree.getFileContent()))){
                 judgeVoidCmdInCheckout(5);
-                System.out.println("sss");
+//                System.out.println("sss");
                 exit(0);
             }
         }
@@ -950,12 +950,12 @@ public class Repository {
             splitFilesTrees = readObject(join(TREE_DIR, readObject(join(COMMIT_DIR, commitOfSplitPoint), Commit.class).getTreeSha1()) ,Trees.class);
         }
         // 只在给定分支修改:指定文件与分支点不同 且 当前分支与分支点相同 把这些文件切换到给定分支的版本 并自动添加到暂存区
-        System.out.println("====================================");
-        System.out.println("current");
-        currentFileTrees.Trees.forEach(Tree::showTree);
-        System.out.println("given");
-        givenFileTrees.Trees.forEach(Tree::showTree);
-        System.out.println("====================================");
+//        System.out.println("====================================");
+//        System.out.println("current");
+//        currentFileTrees.Trees.forEach(Tree::showTree);
+//        System.out.println("given");
+//        givenFileTrees.Trees.forEach(Tree::showTree);
+//        System.out.println("====================================");
         findJustModifiedInGivenBranch(currentFileTrees, givenFileTrees, splitFilesTrees);
         findJustModifiedInOriginalBranch(currentFileTrees, givenFileTrees, splitFilesTrees);
         findExistAfterSplitPointInOriginalBranch(currentFileTrees, givenFileTrees, splitFilesTrees);
