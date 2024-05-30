@@ -51,26 +51,18 @@ public class Main {
                         break;
                     // TODO: FILL THE REST IN
                     case "commit":
-                        try {
-                            if(args.length == 1){
-                                System.out.println("Please enter a commit message.");
-                            }
-                            else{
-                                Repository.commit(args[1]);
-                            }
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
+                        if(args.length == 1){
+                            System.out.println("Please enter a commit message.");
+                        }
+                        else{
+                            Repository.commit(args[1]);
                         }
                         break;
                     case "rm":
-                        try {
-                            Repository.rm(args[1]);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
+                        Repository.rm(args[1]);
                         break;
                     case "log":
-                        Repository.Log();
+                        Repository.log();
                         break;
                     case "global-log":
                         Repository.globalLog();
@@ -89,18 +81,10 @@ public class Main {
                         }
                         break;
                     case "branch":
-                        try {
-                            Repository.branch(args[1]);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
+                        Repository.branch(args[1]);
                         break;
                     case "rm-branch":
-                        try {
-                            Repository.rmBranch(args[1]);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
+                        Repository.rmBranch(args[1]);
                         break;
                     case "reset":
                         try {
@@ -110,14 +94,7 @@ public class Main {
                         }
                         break;
                     case "merge":
-                        try {
-                            Repository.merge(args[1]);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                        break;
-                    case "showTree":
-                        Repository.showTree();
+                        Repository.merge(args[1]);
                         break;
                     default:
                         System.out.println("No command with that name exists.");
