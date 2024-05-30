@@ -432,13 +432,13 @@ public class Repository {
     private static void checkoutFile(String branchName) {
         HashMap<String, String> a = readObject(join(OBJECT_DIR, readContentsAsString(join(BRANCH_DIR, branchName)).substring(readContentsAsString(join(BRANCH_DIR, branchName)).length() - 40)), Commit.class).getfileToFileContent();
         HashMap<String, String> current = getLatestCommit().getfileToFileContent();
-        if(branchName.equals("master")){
-            System.out.println(a);
-            System.out.println(current);
-        }
+//        if(branchName.equals("master")){
+//            System.out.println(a);
+//            System.out.println(current);
+//        }
         a.forEach((name, content) -> {
             try {
-                if(!current.containsKey(name) && Objects.requireNonNull(plainFilenamesIn(CWD)).contains(name) && !sha1(readContentsAsString(join(CWD, name))).equals(content)){
+                if(Objects.requireNonNull(plainFilenamesIn(CWD)).contains(name) && !sha1(readContentsAsString(join(CWD, name))).equals(content)){
                     System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                     exit(0);
                 }
