@@ -591,6 +591,9 @@ public class Repository {
         s = s.substring(s.length() - 40);
         return readObject(join(OBJECT_DIR, s), Commit.class);
     }
+
+    public static void merge(String arg) {
+    }
 }
 
 //    public static void init() throws IOException {
