@@ -20,7 +20,7 @@ public class Main {
      * 我应该如何界定是否在暂存区内:add了但还没commit就是暂存区 add的标准就是 文件内容不同(即sha1编码不同)
      * 清空暂存区的标准是什么:commit了所有暂存区内的文件之后
      */
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args){
         // TODO: what if args is empty?
         if (args == null) {
             throw new GitletException("Please enter a command.");
@@ -94,7 +94,12 @@ public class Main {
                         }
                         break;
                     case "merge":
-                        Repository.merge(args[1]);
+                        try {
+                            Repository.merge(args[1]);
+                        }
+                        catch (IOException e){
+                            throw new RuntimeException(e);
+                        }
                         break;
                     default:
                         System.out.println("No command with that name exists.");
