@@ -3,6 +3,8 @@ package gitlet;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
@@ -478,6 +480,11 @@ public class Repository {
             Commit commit = readObject(join(OBJECT_DIR, commitId), Commit.class);
             updateCurrentBranchAndHead(commitId, commit.getMessage());
             checkout(returnCurrentBranch());
+            if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0){
+                for(File f: Objects.requireNonNull(Stages.listFiles())){
+                    restrictedDelete(f);
+                }
+            }
         }
     }
 
@@ -592,7 +599,116 @@ public class Repository {
         return readObject(join(OBJECT_DIR, s), Commit.class);
     }
 
-    public static void merge(String arg) {
+    public static void merge(String branchName) throws IOException {
+        /*  1.怎么找到分叉点
+            2.在分叉点存在，单在给定分支已修改但是未在当前分支修改的文件(与分割点的文件不同)，签出给定分支里的文件。
+            3.在当前分支修改,但是未在给定分支里修改的文件,保持不变.
+            4.在给定和目前分支以同样的方式修改的文件(修改内容一样/都被删除,保持不变.)如果都被删除，工作目录中存在同名的文件,将单独保留且继续不跟踪。
+            5.只在当前分支的文件,保留
+            6.只在给定分支的文件,签出并暂存
+            7.分割点有,给定分支无,当前分支无，删除/取消跟踪
+            8.分割点有,给定分支有,当前分支无,保持缺席
+            9.以不同方式更改的文件则处理冲突
+        */
+        String t = readContentsAsString(join(BRANCH_DIR, branchName)).substring(readContentsAsString(join(BRANCH_DIR, branchName)).length() - 40);
+        String splitPoint = findSpiltPoint(getLatestCommit().getParents(), readObject(join(OBJECT_DIR, t), Commit.class).getParents());
+        if(splitPoint.equals(getLatestCommit().getCommitId())){
+            checkout(branchName);
+            System.out.println("Current branch fast-forwarded.");
+            exit(0);
+        }
+        else if(splitPoint.equals(t)){
+            System.out.println("Given branch is an ancestor of the current branch.");
+            exit(0);
+        }
+        else {
+            dealWithMerge(getLatestCommit().getCommitId(), t, splitPoint);
+        }
+    }
+
+    private static void dealWithMerge(String currentCommit, String givenCommit, String splitPoint) throws IOException {
+        // 拿到三种状态的文件进行比较
+        HashMap<String, String> current = readObject(join(OBJECT_DIR, currentCommit), Commit.class).getTree();
+        HashMap<String, String> given = readObject(join(OBJECT_DIR, givenCommit), Commit.class).getTree();
+        HashMap<String, String> split = readObject(join(OBJECT_DIR, splitPoint), Commit.class).getTree();
+        // 在分割点里有的文件
+        findJustInSplit(split, current, given, givenCommit);
+        // 只在给定分支
+        findJustInGiven(split, current, given, givenCommit);
+        // 找到以不同方式修改的文件
+        findConflict(current, given);
+    }
+    private static void findJustInGiven(HashMap<String, String> split, HashMap<String, String> current, HashMap<String, String> given, String givenCommit) throws IOException {
+        for(String s: given.keySet()){
+            if(!split.containsKey(s) && !current.containsKey(s)){
+                checkout(givenCommit,"--", s);
+                addIntoStage(s,given.get(s),0);
+            }
+        }
+    }
+
+    private static void findJustInSplit(HashMap<String, String> split, HashMap<String, String> current, HashMap<String, String> given, String givenCommit) throws IOException {
+        for(String s: split.keySet()){
+            if(!current.containsKey(s)){
+                if(!given.containsKey(s)){
+                    rm(s);
+                }
+            }
+            else if(split.get(s).equals(current.get(s))){
+                if(!split.get(s).equals(given.get(s))){
+                    checkout(givenCommit,"--",  s);
+                }
+            }
+        }
+    }
+
+    private static void findConflict(HashMap<String, String> current, HashMap<String, String> given) throws IOException {
+        for(String s: current.keySet()){
+            if(!given.containsKey(s) || !given.get(s).equals(current.get(s))){
+                System.out.println("Encountered a merge conflict.");
+                System.out.println("<<<<<<< HEAD");
+                System.out.println(readContentsAsString(join(CWD, s)));
+                System.out.println("=======");
+                if(given.containsKey(s)){
+                    extractFromBlob(join(Blob_DIR, given.get(s)), join(CWD, "temp.txt"));
+                    System.out.println(readContentsAsString(join(CWD, "temp.txt")));
+                    restrictedDelete(join(CWD, "temp.txt"));
+                    System.out.println();
+                }
+                System.out.println(">>>>>>>");
+            }
+        }
+        for(String t:given.keySet()){
+            if(!current.containsKey(t) || !given.get(t).equals(current.get(t))){
+                System.out.println("Encountered a merge conflict.");
+                System.out.println("<<<<<<< HEAD");
+                if(current.containsKey(t)){
+                    System.out.println(readContentsAsString(join(CWD, t)));
+                }
+                System.out.println("=======");
+                extractFromBlob(join(Blob_DIR, given.get(t)), join(CWD, "temp.txt"));
+                System.out.println(readContentsAsString(join(CWD, "temp.txt")));
+                restrictedDelete(join(CWD, "temp.txt"));
+                System.out.println(">>>>>>>");
+            }
+        }
+    }
+
+    public static String findSpiltPoint(List<String> current, List<String> give){
+        Map<String,Integer> currents = returnContentWithIndex(current);
+        Map<String,Integer> given = returnContentWithIndex(give);
+        String returnString = null;
+        for(String s: currents.keySet()){
+            if(given.containsKey(s)){
+                if(Objects.equals(currents.get(s), given.get(s))){
+                    returnString = s;
+                }
+            }
+        }
+        return returnString;
+    }
+    public static Map<String, Integer> returnContentWithIndex(List<String> process){
+        return process.stream().collect(Collectors.toMap(Function.identity(), process::indexOf));
     }
 }
 
@@ -1329,7 +1445,7 @@ public class Repository {
 //     * 维护每个分支与头部提交的对应关系
 //     * */
 //
-//    public static void merge(String branchName) throws IOException {
+//    public static void  (String branchName) throws IOException {
 //        //TODO:debug!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 //        // 当前分支的commit
 //        if(branchName.equals(currentBranchName)){

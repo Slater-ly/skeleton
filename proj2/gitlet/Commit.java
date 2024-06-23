@@ -124,5 +124,9 @@ public class Commit implements Serializable {
     public void setParens(){
         this.parents.add(this.commitId);
     }
+
+    public HashMap<String, String> getTree() {
+        return this.tree;
+    }
     /* TODO: fill in the rest of this class. */
 }
