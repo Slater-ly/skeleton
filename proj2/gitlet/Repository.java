@@ -237,14 +237,16 @@ public class Repository {
         else{
             File[] files = Stages.listFiles();
             if(files != null){
+                String branchName = "";
                 if(flag){
-                    message = "Merge" + message + " into " + returnCurrentBranch() + ".";
+                    branchName = message;
+                    message = "Merged " + message + " into " + returnCurrentBranch() + ".";
                 }
                 Commit commit = new Commit(message);
                 if(flag){
                     commit.setMergeFlag(true);
-                    commit.setMergeParent(readContentsAsString(join(BRANCH_DIR, message)).substring(readContentsAsString(join(BRANCH_DIR, message)).length() - 40), 0);
-                    commit.setMergeParent(getLatestCommit().getCommitId(), 1);
+                    commit.setMergeParent(readContentsAsString(join(BRANCH_DIR, branchName)).substring(readContentsAsString(join(BRANCH_DIR, branchName)).length() - 40));
+                    commit.setMergeParent(getLatestCommit().getCommitId());
                 }
                 commit.setTree(returnTree(files));
                 commit.setCommitId();
@@ -285,8 +287,9 @@ public class Repository {
         }
         else{
             judgeIfStaged(fileName);
-            judgeIfLatestTracked(fileName);
-            System.out.println("No reason to remove the file.");
+            if(!judgeIfLatestTracked(fileName)){
+                System.out.println("No reason to remove the file.");
+            }
         }
     }
     private static void judgeIfStaged(String fileName) {
@@ -297,6 +300,7 @@ public class Repository {
                 if(t.getFileName().equals(fileName)){
                     if(t.getFileStatus() == 0){
                         restrictedDelete(join(Stages, s));
+                        System.out.println("sssssss");
                         exit(0);
                         return;
                     }
@@ -305,8 +309,9 @@ public class Repository {
         }
     }
 
-    private static void judgeIfLatestTracked(String fileName) {
+    private static boolean judgeIfLatestTracked(String fileName) {
         String t;
+        boolean flag = false;
         if(Objects.requireNonNull(plainFilenamesIn(OBJECT_DIR)).size() != 0){
             if(getLatestCommit().getfileToFileContent().containsKey(fileName)){
                 if(Objects.requireNonNull(plainFilenamesIn(CWD)).contains(fileName)){
@@ -317,9 +322,11 @@ public class Repository {
                 }
                 writeObject(join(Stages, t), new Stage(fileName, t, 1));
                 restrictedDelete(join(CWD, fileName));
-                exit(0);
+//                exit(0);
+                flag = true;
             }
         }
+        return flag;
     }
     public static void log() {
         List<String> show = getLatestCommit().getParents();
@@ -356,7 +363,7 @@ public class Repository {
         System.out.println("===");
         System.out.println("commit " + commitName);
         if(commit.isMergeFlag()){
-            System.out.println("Merge: " + commit.getMergeParent()[0].substring(0, 7) + " " +commit.getMergeParent()[1].substring(0, 7));
+            System.out.println("Merge: " + commit.getMergeParent().get(1).substring(0, 7) + " " + commit.getMergeParent().get(0).substring(0, 7));
         }
         System.out.println("Date: " + commit.getTimestamp());
 //        System.out.println("Branch: " + commit.getCurrentBranchName());
@@ -643,6 +650,9 @@ public class Repository {
         HashMap<String, String> current = readObject(join(OBJECT_DIR, currentCommit), Commit.class).getTree();
         HashMap<String, String> given = readObject(join(OBJECT_DIR, givenCommit), Commit.class).getTree();
         HashMap<String, String> split = readObject(join(OBJECT_DIR, splitPoint), Commit.class).getTree();
+//        System.out.println("current" + current);
+//        System.out.println("given" + given);
+//        System.out.println("split" + split);
         // 在分割点里有的文件
         findJustInSplit(split, current, given, givenCommit);
         // 只在给定分支

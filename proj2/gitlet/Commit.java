@@ -25,7 +25,7 @@ public class Commit implements Serializable {
      */
     private String message;
     private String timestamp;
-    private String[] mergeParent;
+    private List<String> mergeParent = new ArrayList<>();
     private String currentBranchName;
     private List<String> parents = new ArrayList<>();
     private String commitId;
@@ -37,7 +37,7 @@ public class Commit implements Serializable {
     public Commit() {
     }
 
-    public String[] getMergeParent() {
+    public List<String> getMergeParent() {
         return mergeParent;
     }
 
@@ -49,8 +49,8 @@ public class Commit implements Serializable {
         this.currentBranchName = currentBranchName;
     }
 
-    public void setMergeParent(String mergeParent, int index) {
-        this.mergeParent[index] = mergeParent;
+    public void setMergeParent(String mergeParent) {
+        this.mergeParent.add(mergeParent);
     }
 
     public HashMap<String, String> getfileToFileContent() {
