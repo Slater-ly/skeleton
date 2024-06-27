@@ -373,7 +373,7 @@ public class Repository {
 //            System.out.println("====");
 //            System.out.println(commit.getParents());
 //        }
-//        System.out.println();
+        System.out.println();
     }
         public static void checkout(String... args) throws IOException {
         int length = args.length;
@@ -698,8 +698,8 @@ public class Repository {
         int flag = -999999;
         Map<String,Integer> currents = returnContentWithIndex(current);
         Map<String,Integer> given = returnContentWithIndex(give);
-        System.out.println("currents:" + currents);
-        System.out.println("given:" + given);
+//        System.out.println("currents:" + currents);
+//        System.out.println("given:" + given);
         String returnString = null;
         for(String s: currents.keySet()){
             if(given.containsKey(s)){
@@ -711,7 +711,7 @@ public class Repository {
                 }
             }
         }
-        System.out.println("split:" + returnString);
+//        System.out.println("split:" + returnString);
         return returnString;
     }
     public static Map<String, Integer> returnContentWithIndex(List<String> process){
