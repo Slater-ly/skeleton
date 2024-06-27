@@ -354,7 +354,7 @@ public class Repository {
     private static Set<String> returnAllCommit(){
         List<String> branch = Objects.requireNonNull(plainFilenamesIn(BRANCH_DIR));
         Set<String> set = new HashSet<>();
-        /**/
+
         branch.forEach(s ->
                 set.addAll(readObject(join(OBJECT_DIR, readContentsAsString(join(BRANCH_DIR, s)).substring(readContentsAsString(join(BRANCH_DIR, s)).length() - 40)), Commit.class).getParents())
         );
