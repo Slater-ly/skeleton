@@ -507,6 +507,7 @@ public class Repository {
                 try {
                     if(!Objects.requireNonNull(plainFilenamesIn(CWD)).contains(a)){
                         checkOutFileWithCommit(commitId, a);
+                        judgeIfRm(a,"111");
                     }
                     else {
                         if(!sha1(readContentsAsString(join(CWD, a))).equals(fileToName.get(a))){
@@ -519,6 +520,7 @@ public class Repository {
                 }
             }
             updateCurrentBranchAndHead(commitId, returnCurrentBranch());
+
         }
     }
 
