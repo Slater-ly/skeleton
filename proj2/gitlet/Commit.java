@@ -25,7 +25,7 @@ public class Commit implements Serializable {
      */
     private String message;
     private String timestamp;
-    private String mergeParent;
+    private String[] mergeParent;
     private String currentBranchName;
     private List<String> parents = new ArrayList<>();
     private String commitId;
@@ -37,7 +37,7 @@ public class Commit implements Serializable {
     public Commit() {
     }
 
-    public String getMergeParent() {
+    public String[] getMergeParent() {
         return mergeParent;
     }
 
@@ -49,8 +49,8 @@ public class Commit implements Serializable {
         this.currentBranchName = currentBranchName;
     }
 
-    public void setMergeParent(String mergeParent) {
-        this.mergeParent = mergeParent;
+    public void setMergeParent(String mergeParent, int index) {
+        this.mergeParent[index] = mergeParent;
     }
 
     public HashMap<String, String> getfileToFileContent() {
@@ -95,9 +95,6 @@ public class Commit implements Serializable {
         return timestamp;
     }
 
-    public String getParent() {
-        return mergeParent;
-    }
 
     private String setTheTime(Date date) {
         SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
@@ -112,10 +109,7 @@ public class Commit implements Serializable {
     public void setTimestamp(String timestamp) {
         this.timestamp = timestamp;
     }
-    public void setParent(String parent) {
-        this.mergeParent = parent;
-        this.timestamp = setTheTime(new Date());
-    }
+
     public void setParents(){
         List<String> parents = Repository.getLatestCommit().getParents();
         parents.add(this.commitId);
@@ -127,6 +121,10 @@ public class Commit implements Serializable {
 
     public HashMap<String, String> getTree() {
         return this.tree;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
     /* TODO: fill in the rest of this class. */
 }

@@ -225,7 +225,7 @@ public class Repository {
             }
         }
     }
-    static void commit(String message){
+    static void commit(String message, Boolean flag){
         //TODO:5.27 完善所有部分
         if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() == 0){
             System.out.println("No changes added to the commit.");
@@ -237,7 +237,15 @@ public class Repository {
         else{
             File[] files = Stages.listFiles();
             if(files != null){
+                if(flag){
+                    message = "Merge" + message + " into " + returnCurrentBranch() + ".";
+                }
                 Commit commit = new Commit(message);
+                if(flag){
+                    commit.setMergeFlag(true);
+                    commit.setMergeParent(readContentsAsString(join(BRANCH_DIR, message)).substring(readContentsAsString(join(BRANCH_DIR, message)).length() - 40), 0);
+                    commit.setMergeParent(getLatestCommit().getCommitId(), 1);
+                }
                 commit.setTree(returnTree(files));
                 commit.setCommitId();
                 commit.setParents();
@@ -247,7 +255,6 @@ public class Repository {
             }
         }
     }
-
     private static String returnCurrentBranch() {
        return getLatestCommit().getCurrentBranchName();
     }
@@ -348,6 +355,9 @@ public class Repository {
         private static void  showCommit(Commit commit, String commitName) {
         System.out.println("===");
         System.out.println("commit " + commitName);
+        if(commit.isMergeFlag()){
+            System.out.println("Merge: " + commit.getMergeParent()[0].substring(0, 7) + " " +commit.getMergeParent()[1].substring(0, 7));
+        }
         System.out.println("Date: " + commit.getTimestamp());
 //        System.out.println("Branch: " + commit.getCurrentBranchName());
 //        System.out.println("TreeSha1:" + commit.getTreeSha1());
@@ -357,11 +367,13 @@ public class Repository {
 //            System.out.println(".");
 //        }
 //        else{
-            System.out.println(commit.getMessage());
+        System.out.println(commit.getMessage());
+//            System.out.println("Tree:" + commit.getfileToFileContent());
+//            System.out.println("branchName:" + commit.getCurrentBranchName());
 //            System.out.println("====");
 //            System.out.println(commit.getParents());
 //        }
-        System.out.println();
+//        System.out.println();
     }
         public static void checkout(String... args) throws IOException {
         int length = args.length;
@@ -598,7 +610,6 @@ public class Repository {
         s = s.substring(s.length() - 40);
         return readObject(join(OBJECT_DIR, s), Commit.class);
     }
-
     public static void merge(String branchName) throws IOException {
         /*  1.怎么找到分叉点
             2.在分叉点存在，单在给定分支已修改但是未在当前分支修改的文件(与分割点的文件不同)，签出给定分支里的文件。
@@ -623,6 +634,7 @@ public class Repository {
         }
         else {
             dealWithMerge(getLatestCommit().getCommitId(), t, splitPoint);
+            commit(branchName, true);
         }
     }
 
@@ -636,12 +648,12 @@ public class Repository {
         // 只在给定分支
         findJustInGiven(split, current, given, givenCommit);
         // 找到以不同方式修改的文件
-        findConflict(current, given);
+        findConflict(current, given, split);
     }
     private static void findJustInGiven(HashMap<String, String> split, HashMap<String, String> current, HashMap<String, String> given, String givenCommit) throws IOException {
         for(String s: given.keySet()){
             if(!split.containsKey(s) && !current.containsKey(s)){
-                checkout(givenCommit,"--", s);
+                checkout("checkout", givenCommit,"--", s);
                 addIntoStage(s,given.get(s),0);
             }
         }
@@ -655,56 +667,51 @@ public class Repository {
                 }
             }
             else if(split.get(s).equals(current.get(s))){
-                if(!split.get(s).equals(given.get(s))){
-                    checkout(givenCommit,"--",  s);
+                if(!given.containsKey(s)){
+                    rm(s);
                 }
             }
         }
     }
-
-    private static void findConflict(HashMap<String, String> current, HashMap<String, String> given) throws IOException {
-        for(String s: current.keySet()){
-            if(!given.containsKey(s) || !given.get(s).equals(current.get(s))){
-                System.out.println("Encountered a merge conflict.");
-                System.out.println("<<<<<<< HEAD");
-                System.out.println(readContentsAsString(join(CWD, s)));
-                System.out.println("=======");
-                if(given.containsKey(s)){
-                    extractFromBlob(join(Blob_DIR, given.get(s)), join(CWD, "temp.txt"));
-                    System.out.println(readContentsAsString(join(CWD, "temp.txt")));
-                    restrictedDelete(join(CWD, "temp.txt"));
-                    System.out.println();
+    private static void findConflict(HashMap<String, String> current, HashMap<String, String> given, HashMap<String, String> split) throws IOException {
+        for(String fileName: Objects.requireNonNull(plainFilenamesIn(CWD))){
+            if(split.containsKey(fileName)){
+                if(!given.get(fileName).equals(current.get(fileName))){
+                    String content = "Encountered a merge conflict." + "\n" +  "<<<<<<< HEAD" + "\n";
+                    // 当前分支有 给定分支有/ 当前分支有 给定分支删 /当前分支删 给定分支有
+                    if(plainFilenamesIn(CWD).contains(fileName)){
+                        content += readContentsAsString(join(CWD, fileName)) + "\n";
+                    }
+                    content += "=======" + "\n";
+                    if(given.containsKey(fileName)){
+                        extractFromBlob(join(Blob_DIR, given.get(fileName)), join(CWD, "temp.txt"));
+                        content += readContentsAsString(join(CWD, "temp.txt"));
+                        restrictedDelete(join(CWD, "temp.txt"));
+                    }
+                    content += "\n" + ">>>>>>>";
+                    writeContents(join(CWD, fileName), content);
                 }
-                System.out.println(">>>>>>>");
-            }
-        }
-        for(String t:given.keySet()){
-            if(!current.containsKey(t) || !given.get(t).equals(current.get(t))){
-                System.out.println("Encountered a merge conflict.");
-                System.out.println("<<<<<<< HEAD");
-                if(current.containsKey(t)){
-                    System.out.println(readContentsAsString(join(CWD, t)));
-                }
-                System.out.println("=======");
-                extractFromBlob(join(Blob_DIR, given.get(t)), join(CWD, "temp.txt"));
-                System.out.println(readContentsAsString(join(CWD, "temp.txt")));
-                restrictedDelete(join(CWD, "temp.txt"));
-                System.out.println(">>>>>>>");
             }
         }
     }
-
     public static String findSpiltPoint(List<String> current, List<String> give){
+        int flag = -999999;
         Map<String,Integer> currents = returnContentWithIndex(current);
         Map<String,Integer> given = returnContentWithIndex(give);
+        System.out.println("currents:" + currents);
+        System.out.println("given:" + given);
         String returnString = null;
         for(String s: currents.keySet()){
             if(given.containsKey(s)){
                 if(Objects.equals(currents.get(s), given.get(s))){
-                    returnString = s;
+                    if(currents.get(s) > flag){//找到分割点
+                        returnString = s;
+                        flag = currents.get(s);
+                    }
                 }
             }
         }
+        System.out.println("split:" + returnString);
         return returnString;
     }
     public static Map<String, Integer> returnContentWithIndex(List<String> process){

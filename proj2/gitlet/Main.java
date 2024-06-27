@@ -55,7 +55,7 @@ public class Main {
                             System.out.println("Please enter a commit message.");
                         }
                         else{
-                            Repository.commit(args[1]);
+                            Repository.commit(args[1], false);
                         }
                         break;
                     case "rm":
