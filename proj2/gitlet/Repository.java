@@ -491,6 +491,7 @@ public class Repository {
             restrictedDelete(join(BRANCH_DIR, branchName));
         }
     }
+    /**/
     public static void reset(String commitId) throws IOException {
         if(!Objects.requireNonNull(plainFilenamesIn(OBJECT_DIR)).contains(commitId)){
             System.out.println("No commit with that id exists.");
