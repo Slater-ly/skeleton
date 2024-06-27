@@ -300,7 +300,7 @@ public class Repository {
                 if(t.getFileName().equals(fileName)){
                     if(t.getFileStatus() == 0){
                         restrictedDelete(join(Stages, s));
-                        System.out.println("sssssss");
+//                        System.out.println("sssssss");
                         exit(0);
                         return;
                     }
@@ -496,14 +496,28 @@ public class Repository {
             System.out.println("No commit with that id exists.");
         }
         else{
-            Commit commit = readObject(join(OBJECT_DIR, commitId), Commit.class);
-            updateCurrentBranchAndHead(commitId, commit.getMessage());
-            checkout(returnCurrentBranch());
-            if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0){
-                for(File f: Objects.requireNonNull(Stages.listFiles())){
-                    restrictedDelete(f);
+            Map<String, String> fileToName = readObject(join(OBJECT_DIR, commitId), Commit.class).getfileToFileContent();
+            for(String a: Objects.requireNonNull(plainFilenamesIn(CWD))){
+                if(!fileToName.containsKey(a)){
+                    restrictedDelete(join(CWD, a));
                 }
             }
+            for(String a: fileToName.keySet()){
+                try {
+                    if(!Objects.requireNonNull(plainFilenamesIn(CWD)).contains(a)){
+                        checkOutFileWithCommit(commitId, a);
+                    }
+                    else {
+                        if(!sha1(readContentsAsString(join(CWD, a))).equals(fileToName.get(a))){
+                            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                            exit(0);
+                        }
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            updateCurrentBranchAndHead(commitId, returnCurrentBranch());
         }
     }
 
