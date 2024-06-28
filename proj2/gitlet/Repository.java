@@ -227,7 +227,7 @@ public class Repository {
     }
     static void commit(String message, Boolean flag){
         //TODO:5.27 完善所有部分
-        if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() == 0){
+        if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() == 0 && !flag){
             System.out.println("No changes added to the commit.");
             exit(0);
         }
@@ -272,7 +272,7 @@ public class Repository {
                 fileToFileContent.put(s.getFileName(), s.getFileContent());
             }
         }
-        for(File f: plainFilenamesIn(Stages).stream().map(x -> join(Stages, x)).toArray(File[]::new)){
+        for(File f: Objects.requireNonNull(plainFilenamesIn(Stages)).stream().map(x -> join(Stages, x)).toArray(File[]::new)){
             if (readObject(f, Stage.class).getFileStatus() == 1) {
                 restrictedDelete(join(CWD, readObject(f, Stage.class).getFileName()));
             }
@@ -337,9 +337,24 @@ public class Repository {
         Objects.requireNonNull(plainFilenamesIn(OBJECT_DIR)).forEach(s -> showCommit(readObject(join(OBJECT_DIR, s), Commit.class), s));
     }
     public static void find(String message){
-        HashMap<String, String> idsToMes = new HashMap<>();
-        new ArrayList<>(returnAllCommit()).forEach(s -> {idsToMes.put(readObject(join(OBJECT_DIR, s), Commit.class).getMessage(), s);});
-        System.out.println(idsToMes.getOrDefault(message, "Found no commit with that message."));
+//        HashMap<String, String> idsToMes = new HashMap<>();
+//        new ArrayList<>(returnAllCommit()).forEach(s -> {idsToMes.put(readObject(join(OBJECT_DIR, s), Commit.class).getMessage(), s);});
+//        System.out.println(idsToMes.getOrDefault(message, "Found no commit with that message."));
+
+        Set<String> allCommit = returnAllCommit();
+        boolean flag = true;
+        for(String s: allCommit){
+            Commit commit = readObject(join(OBJECT_DIR, s), Commit.class);
+            if(commit.getMessage().equals(message)){
+                flag = false;
+                System.out.println(commit.getCommitId());
+            }
+//            System.out.println(commit.getMessage());
+        }
+//        globalLog();
+        if(flag){
+            System.out.println("Found no commit with that message.");
+        }
     }
     private static Set<String> returnAllCommit(){
         List<String> branch = Objects.requireNonNull(plainFilenamesIn(BRANCH_DIR));
