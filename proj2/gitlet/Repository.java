@@ -652,20 +652,31 @@ public class Repository {
             8.分割点有,给定分支有,当前分支无,保持缺席
             9.以不同方式更改的文件则处理冲突
         */
-        String t = readContentsAsString(join(BRANCH_DIR, branchName)).substring(readContentsAsString(join(BRANCH_DIR, branchName)).length() - 40);
-        String splitPoint = findSpiltPoint(getLatestCommit().getParents(), readObject(join(OBJECT_DIR, t), Commit.class).getParents());
-        if(splitPoint.equals(getLatestCommit().getCommitId())){
-            checkout(branchName);
-            System.out.println("Current branch fast-forwarded.");
-            exit(0);
+        if(branchName.equals(returnCurrentBranch())){
+            System.out.println("Cannot merge a branch with itself.");
         }
-        else if(splitPoint.equals(t)){
-            System.out.println("Given branch is an ancestor of the current branch.");
-            exit(0);
+        else if(!Objects.requireNonNull(plainFilenamesIn(BRANCH_DIR)).contains(branchName)){
+            System.out.println("A branch with that name does not exist.");
         }
-        else {
-            dealWithMerge(getLatestCommit().getCommitId(), t, splitPoint);
-            commit(branchName, true);
+        else if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0){
+            System.out.println("You have uncommitted changes.");
+        }
+        else{
+            String t = readContentsAsString(join(BRANCH_DIR, branchName)).substring(readContentsAsString(join(BRANCH_DIR, branchName)).length() - 40);
+            String splitPoint = findSpiltPoint(getLatestCommit().getParents(), readObject(join(OBJECT_DIR, t), Commit.class).getParents());
+            if(splitPoint.equals(getLatestCommit().getCommitId())){
+                checkout(branchName);
+                System.out.println("Current branch fast-forwarded.");
+                exit(0);
+            }
+            else if(splitPoint.equals(t)){
+                System.out.println("Given branch is an ancestor of the current branch.");
+                exit(0);
+            }
+            else {
+                dealWithMerge(getLatestCommit().getCommitId(), t, splitPoint);
+                commit(branchName, true);
+            }
         }
     }
 
@@ -687,6 +698,10 @@ public class Repository {
     private static void findJustInGiven(HashMap<String, String> split, HashMap<String, String> current, HashMap<String, String> given, String givenCommit) throws IOException {
         for(String s: given.keySet()){
             if(!split.containsKey(s) && !current.containsKey(s)){
+                if(plainFilenamesIn(CWD).contains(s)){
+                    System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                    exit(0);
+                }
                 checkout("checkout", givenCommit,"--", s);
                 addIntoStage(s,given.get(s),0);
             }
@@ -697,6 +712,10 @@ public class Repository {
         for(String s: split.keySet()){
             if(!current.containsKey(s)){
                 if(!given.containsKey(s)){
+                    if(plainFilenamesIn(CWD).contains(s)){
+                        System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                        exit(0);
+                    }
                     rm(s);
                 }
             }
@@ -709,7 +728,7 @@ public class Repository {
     }
     private static void findConflict(HashMap<String, String> current, HashMap<String, String> given, HashMap<String, String> split) throws IOException {
         for(String fileName: Objects.requireNonNull(plainFilenamesIn(CWD))){
-            if(split.containsKey(fileName)){
+            if(split.containsKey(fileName) || split == null){
                 if(!given.get(fileName).equals(current.get(fileName))){
                     String content = "Encountered a merge conflict." + "\n" +  "<<<<<<< HEAD" + "\n";
                     // 当前分支有 给定分支有/ 当前分支有 给定分支删 /当前分支删 给定分支有
