@@ -524,7 +524,7 @@ public class Repository {
                 Objects.requireNonNull(plainFilenamesIn(Stages)).forEach(a -> restrictedDelete(join(Stages, a)));
             }
         }
-    }
+    }/**/
 
     public static void status(){
         checkIfInitialized();
