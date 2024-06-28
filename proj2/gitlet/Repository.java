@@ -337,19 +337,9 @@ public class Repository {
         Objects.requireNonNull(plainFilenamesIn(OBJECT_DIR)).forEach(s -> showCommit(readObject(join(OBJECT_DIR, s), Commit.class), s));
     }
     public static void find(String message){
-        Set<String> allCommit = returnAllCommit();
-        boolean flag = true;
-        for(String s: allCommit){
-            Commit commit = readObject(join(OBJECT_DIR, s), Commit.class);
-            if(commit.getMessage().equals(message)){
-                flag = false;
-                System.out.println(commit.getCommitId());
-            }
-        }
-//        globalLog();
-        if(flag){
-            System.out.println("Found no commit with that message.");
-        }
+        HashMap<String, String> idsToMes = new HashMap<>();
+        new ArrayList<>(returnAllCommit()).forEach(s -> {idsToMes.put(readObject(join(OBJECT_DIR, s), Commit.class).getMessage(), s);});
+        System.out.println(idsToMes.getOrDefault(message, "Found no commit with that message."));
     }
     private static Set<String> returnAllCommit(){
         List<String> branch = Objects.requireNonNull(plainFilenamesIn(BRANCH_DIR));
