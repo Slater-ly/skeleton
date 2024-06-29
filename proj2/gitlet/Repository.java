@@ -41,22 +41,12 @@ public class Repository {
      * The .gitlet directory.
      */
     public static final File GITLET_DIR = join(CWD, ".gitlet");
-//    public static final File OBJECT_DIR = join(GITLET_DIR, "objects");
-//    public static final File COMMIT_DIR = join(OBJECT_DIR, "com");
-//    public static final File BLOB_DIR = join(OBJECT_DIR, "blo");
-//    public static final File TREE_DIR = join(OBJECT_DIR, "tre");
-//    public static final File Stages = join(GITLET_DIR, "stage");
-//    public static final File BRANCH_DIR = join(GITLET_DIR, "branch");
-//    public static final File HEAD = join(GITLET_DIR, "HEAD");
-//    public static final File MAPBRANCH_DIR = join(BRANCH_DIR, "mapBranch");
-//    public static final File CURRENTBRANCH_DIR = join(BRANCH_DIR, "Name");
-//    public static String currentBranchName = CURRENTBRANCH_DIR.list() == null ? "master" : plainFilenamesIn(CURRENTBRANCH_DIR).get(0);
     public static final File OBJECT_DIR = join(GITLET_DIR, "objects");
     public static final File BRANCH_DIR = join(GITLET_DIR, "branch");
-    public static final File Blob_DIR = join(GITLET_DIR,"BLOB");
+    public static final File Blob_DIR = join(GITLET_DIR, "BLOB");
     public static final File HEAD = join(GITLET_DIR, "HEAD");
     public static final File Stages = join(GITLET_DIR, "stage");
-    public static final File master =join(BRANCH_DIR, "master");
+    public static final File master = join(BRANCH_DIR, "master");
     /*
      *   .gitlet
      *      |--objects
@@ -146,11 +136,11 @@ public class Repository {
             throw new RuntimeException(e);
         }
     }
+
     public static void init() throws IOException {
-        if(GITLET_DIR.exists()){
+        if (GITLET_DIR.exists()) {
             System.out.println("A Gitlet version-control system already exists in the current directory.");
-        }
-        else {
+        } else {
             initEmptyRep();
             Commit ori = createOriginalCommit();
             initOriginalCommit(ori);
@@ -173,6 +163,7 @@ public class Repository {
 //        System.out.println(ori.getCommitId());
         writeObject(join(OBJECT_DIR, ori.getCommitId()), ori);
     }
+
     private static Commit createOriginalCommit() {
         Commit initial = new Commit("initial commit");
         initial.setTimestamp("Wed Dec 31 16:00:00 1969 -0800");
@@ -188,27 +179,28 @@ public class Repository {
         writeObject(branch, commitId);
         Commit t = getLatestCommit();
         t.setCurrentBranchName(branchName);
-        writeObject(join(OBJECT_DIR,getLatestCommit().getCommitId()), t);
+        writeObject(join(OBJECT_DIR, getLatestCommit().getCommitId()), t);
     }
+
     static void add(String fileName) throws IOException {
-        if(!join(CWD, fileName).exists()){
+        if (!join(CWD, fileName).exists()) {
             System.out.println("File does not exist.");
             exit(0);
-        }
-        else {
+        } else {
             String fileContent = sha1(readContentsAsString(join(CWD, fileName)));
-            judgeIfRm(fileName,fileContent);
+            judgeIfRm(fileName, fileContent);
             judgeIfFileInCurrentCommit(fileName, fileContent);
             addIntoStage(fileName, fileContent, 0);
             addIntoBlob(fileName, join(Blob_DIR, fileContent));
 
         }
     }
+
     private static void judgeIfRm(String fileName, String fileContent) {
-        if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0){
-            for(File f: Objects.requireNonNull(Stages.listFiles())){
+        if (Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0) {
+            for (File f : Objects.requireNonNull(Stages.listFiles())) {
                 Stage stages = readObject(f, Stage.class);
-                if(stages.getFileStatus() == 1 && stages.getFileName().equals(fileName)){
+                if (stages.getFileStatus() == 1 && stages.getFileName().equals(fileName)) {
                     restrictedDelete(f);
                 }
             }
@@ -216,35 +208,34 @@ public class Repository {
     }
 
     private static void judgeIfFileInCurrentCommit(String fileName, String fileContent) {
-        if(Objects.requireNonNull(plainFilenamesIn(OBJECT_DIR)).size() != 0){
-            if(Objects.requireNonNull(plainFilenamesIn(Blob_DIR)).contains(fileContent)){
-                HashMap<String,String> aa = readObject(join(OBJECT_DIR, readContentsAsString(join(HEAD)).substring(readContentsAsString(join(HEAD)).length() - 40)), Commit.class).getfileToFileContent();
-                if(aa.containsKey(fileName) && aa.get(fileName).equals(fileContent)){
+        if (Objects.requireNonNull(plainFilenamesIn(OBJECT_DIR)).size() != 0) {
+            if (Objects.requireNonNull(plainFilenamesIn(Blob_DIR)).contains(fileContent)) {
+                HashMap<String, String> aa = readObject(join(OBJECT_DIR, readContentsAsString(join(HEAD)).substring(readContentsAsString(join(HEAD)).length() - 40)), Commit.class).getfileToFileContent();
+                if (aa.containsKey(fileName) && aa.get(fileName).equals(fileContent)) {
                     exit(0);
                 }
             }
         }
     }
-    static void commit(String message, Boolean flag){
+
+    static void commit(String message, Boolean flag) {
         //TODO:5.27 完善所有部分
-        if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() == 0 && !flag){
+        if (Objects.requireNonNull(plainFilenamesIn(Stages)).size() == 0 && !flag) {
             System.out.println("No changes added to the commit.");
             exit(0);
-        }
-        else if(message.equals("")){
+        } else if (message.equals("")) {
             System.out.println("Please enter a commit message.");
-        }
-        else{
+        } else {
             File[] files = Stages.listFiles();
-            if(files != null){
+            if (files != null) {
                 String branchName = "";
-                if(flag){
+                if (flag) {
                     branchName = message;
                     message = "Merged " + message + " into " + returnCurrentBranch() + ".";
                 }
                 Commit commit = new Commit(message);
                 HashMap<String, String> rm = getLatestCommit().getRmFile();
-                if(flag){
+                if (flag) {
                     commit.setMergeFlag(true);
                     commit.setMergeParent(readContentsAsString(join(BRANCH_DIR, branchName)).substring(readContentsAsString(join(BRANCH_DIR, branchName)).length() - 40));
                     commit.setMergeParent(getLatestCommit().getCommitId());
@@ -255,27 +246,27 @@ public class Repository {
                 commit.setParents(rm);
                 commit.setCurrentBranchName(returnCurrentBranch());
                 writeObject(join(OBJECT_DIR, commit.getCommitId()), commit);
-                updateCurrentBranchAndHead(commit.getCommitId(),returnCurrentBranch());
+                updateCurrentBranchAndHead(commit.getCommitId(), returnCurrentBranch());
             }
         }
     }
+
     private static String returnCurrentBranch() {
-       return getLatestCommit().getCurrentBranchName();
+        return getLatestCommit().getCurrentBranchName();
     }
 
-    private static HashMap<String, String> returnTree(File[] files, Commit commit){
-        HashMap<String,String> fileToFileContent = getLatestCommit().getfileToFileContent();
-        for(File f: files){
+    private static HashMap<String, String> returnTree(File[] files, Commit commit) {
+        HashMap<String, String> fileToFileContent = getLatestCommit().getfileToFileContent();
+        for (File f : files) {
             Stage s = readObject(f, Stage.class);
-            if(s.getFileStatus() == 1) {
+            if (s.getFileStatus() == 1) {
                 fileToFileContent.remove(s.getFileName());
                 commit.setRmFile(s.getFileName(), s.getFileContent());
-            }
-            else {
+            } else {
                 fileToFileContent.put(s.getFileName(), s.getFileContent());
             }
         }
-        for(File f: Objects.requireNonNull(plainFilenamesIn(Stages)).stream().map(x -> join(Stages, x)).toArray(File[]::new)){
+        for (File f : Objects.requireNonNull(plainFilenamesIn(Stages)).stream().map(x -> join(Stages, x)).toArray(File[]::new)) {
             if (readObject(f, Stage.class).getFileStatus() == 1) {
                 restrictedDelete(join(CWD, readObject(f, Stage.class).getFileName()));
             }
@@ -283,25 +274,25 @@ public class Repository {
         }
         return fileToFileContent;
     }
-    public static void rm(String fileName){
-        if(!join(CWD, fileName).exists() && !getLatestCommit().getfileToFileContent().containsKey(fileName)){
+
+    public static void rm(String fileName) {
+        if (!join(CWD, fileName).exists() && !getLatestCommit().getfileToFileContent().containsKey(fileName)) {
             System.out.println("No reason to remove the file.");
             exit(0);
-        }
-        else{
+        } else {
             judgeIfStaged(fileName);
-            if(!judgeIfLatestTracked(fileName)){
+            if (!judgeIfLatestTracked(fileName)) {
                 System.out.println("No reason to remove the file.");
             }
         }
     }
     private static void judgeIfStaged(String fileName) {
-        if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0){
+        if (Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0) {
             List<String> aa = Objects.requireNonNull(plainFilenamesIn(Stages));
-            aa.forEach(s ->{
+            aa.forEach(s -> {
                 Stage t = readObject(join(Stages, s), Stage.class);
-                if(t.getFileName().equals(fileName)){
-                    if(t.getFileStatus() == 0){
+                if (t.getFileName().equals(fileName)) {
+                    if (t.getFileStatus() == 0) {
                         restrictedDelete(join(Stages, s));
 //                        System.out.println("sssssss");
                         exit(0);
@@ -311,21 +302,18 @@ public class Repository {
             });
         }
     }
-
     private static boolean judgeIfLatestTracked(String fileName) {
         String t;
         boolean flag = false;
-        if(Objects.requireNonNull(plainFilenamesIn(OBJECT_DIR)).size() != 0){
-            if(getLatestCommit().getfileToFileContent().containsKey(fileName)){
-                if(Objects.requireNonNull(plainFilenamesIn(CWD)).contains(fileName)){
-                    t = sha1(readContentsAsString(join(CWD,fileName)));
-                }
-                else {
+        if (Objects.requireNonNull(plainFilenamesIn(OBJECT_DIR)).size() != 0) {
+            if (getLatestCommit().getfileToFileContent().containsKey(fileName)) {
+                if (Objects.requireNonNull(plainFilenamesIn(CWD)).contains(fileName)) {
+                    t = sha1(readContentsAsString(join(CWD, fileName)));
+                } else {
                     t = getLatestCommit().getfileToFileContent().get(fileName);
                 }
                 writeObject(join(Stages, t), new Stage(fileName, t, 1));
                 restrictedDelete(join(CWD, fileName));
-//                exit(0);
                 flag = true;
             }
         }
@@ -334,57 +322,38 @@ public class Repository {
     public static void log() {
         List<String> show = getLatestCommit().getParents();
         Collections.reverse(show);
-        show.forEach(s ->showCommit(readObject(join(OBJECT_DIR, s), Commit.class), s));
+        show.forEach(s -> showCommit(readObject(join(OBJECT_DIR, s), Commit.class), s));
     }
-    public static void globalLog(){
+    public static void globalLog() {
         Objects.requireNonNull(plainFilenamesIn(OBJECT_DIR)).forEach(s -> showCommit(readObject(join(OBJECT_DIR, s), Commit.class), s));
     }
-    public static void find(String message){
-//        HashMap<String, String> idsToMes = new HashMap<>();
-//        new ArrayList<>(returnAllCommit()).forEach(s -> {idsToMes.put(readObject(join(OBJECT_DIR, s), Commit.class).getMessage(), s);});
-//        System.out.println(idsToMes.getOrDefault(message, "Found no commit with that message."));
+    public static void find(String message) {
         List<String> all = Objects.requireNonNull(plainFilenamesIn(OBJECT_DIR));
         boolean flag = true;
-        for(String s: all){
+        for (String s : all) {
             Commit commit = readObject(join(OBJECT_DIR, s), Commit.class);
-            if(commit.getMessage().equals(message)){
+            if (commit.getMessage().equals(message)) {
                 flag = false;
                 System.out.println(commit.getCommitId());
             }
-//            System.out.println(commit.getMessage());
         }
-//        globalLog();
-        if(flag){
+        if (flag) {
             System.out.println("Found no commit with that message.");
         }
     }
-        private static void  showCommit(Commit commit, String commitName) {
+    private static void showCommit(Commit commit, String commitName) {
         System.out.println("===");
         System.out.println("commit " + commitName);
-        if(commit.isMergeFlag()){
+        if (commit.isMergeFlag()) {
             System.out.println("Merge: " + commit.getMergeParent().get(1).substring(0, 7) + " " + commit.getMergeParent().get(0).substring(0, 7));
         }
         System.out.println("Date: " + commit.getTimestamp());
 //            System.out.println("NameToContent:" + commit.getfileToFileContent());
 //            System.out.println("rmFile:" + commit.getRmFile());
-//        System.out.println("Branch: " + commit.getCurrentBranchName());
-//        System.out.println("TreeSha1:" + commit.getTreeSha1());
-//        System.out.println("Parent: " + commit.getParent());
-//        if(commit.isMergeFlag()){
-//            System.out.print(commit.getMessage());
-//            System.out.println(".");
-//        }
-//        else{
         System.out.println(commit.getMessage());
-//            System.out.println("Tree:" + commit.getfileToFileContent());
-//            System.out.println("rm" + commit.getRmFile());
-//            System.out.println("branchName:" + commit.getCurrentBranchName());
-//            System.out.println("====");
-//            System.out.println(commit.getParents());
-//        }
         System.out.println();
     }
-        public static void checkout(String... args) throws IOException {
+    public static void checkout(String... args) throws IOException {
         int length = args.length;
         switch (length) {
             case 2:
@@ -402,46 +371,41 @@ public class Repository {
                 break;
         }
     }
-
     private static void checkOutFileWithCommit(String commitId, String fileName) throws IOException {
-        if(!Objects.requireNonNull(plainFilenamesIn(OBJECT_DIR)).contains(commitId)) {
+        if (!Objects.requireNonNull(plainFilenamesIn(OBJECT_DIR)).contains(commitId)) {
             System.out.println("No commit with that id exists.");
-        }
-        else{
+        } else {
             Commit commit = readObject(join(OBJECT_DIR, commitId), Commit.class);
-            if(!commit.getfileToFileContent().containsKey(fileName)){
+            if (!commit.getfileToFileContent().containsKey(fileName)) {
                 System.out.println("File does not exist in that commit.");
                 exit(0);
-            }
-            else{
-                extractFromBlob(join(Blob_DIR, commit.getfileToFileContent().get(fileName)), join(CWD,fileName));
+            } else {
+                extractFromBlob(join(Blob_DIR, commit.getfileToFileContent().get(fileName)), join(CWD, fileName));
             }
         }
     }
 
     private static void dealWithFile(String fileName) throws IOException {
         HashMap<String, String> a = getLatestCommit().getfileToFileContent();
-        if(!a.containsKey(fileName)){
+        if (!a.containsKey(fileName)) {
             System.out.println("File does not exist in that commit.");
             exit(0);
-        }
-        else{
-            extractFromBlob(join(Blob_DIR, a.get(fileName)), join(CWD,fileName));
+        } else {
+            extractFromBlob(join(Blob_DIR, a.get(fileName)), join(CWD, fileName));
         }
     }
 
     private static void dealWithBranch(String branchName) {
-        if(!Objects.requireNonNull(plainFilenamesIn(BRANCH_DIR)).contains(branchName)){
+        if (!Objects.requireNonNull(plainFilenamesIn(BRANCH_DIR)).contains(branchName)) {
             System.out.println("No such branch exists.");
         } else if (getLatestCommit().getCurrentBranchName().equals(branchName)) {
             System.out.println("No need to checkout the current branch.");
-        }
-        else {
+        } else {
             delFileCurrent();
-            updateCurrentBranchAndHead(readContentsAsString(join(BRANCH_DIR, branchName)),branchName);
+            updateCurrentBranchAndHead(readContentsAsString(join(BRANCH_DIR, branchName)), branchName);
             checkoutFile(branchName);
-            if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0){
-                for(File f: Objects.requireNonNull(Stages.listFiles())){
+            if (Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0) {
+                for (File f : Objects.requireNonNull(Stages.listFiles())) {
                     restrictedDelete(f);
                 }
             }
@@ -452,74 +416,68 @@ public class Repository {
         HashMap<String, String> a = getLatestCommit().getfileToFileContent();
         a.forEach((name, content) -> restrictedDelete(join(CWD, name)));
     }
+
     private static void checkoutFile(String branchName) {
         Commit branchCommit = readObject(join(OBJECT_DIR, readContentsAsString(join(BRANCH_DIR, branchName)).substring(readContentsAsString(join(BRANCH_DIR, branchName)).length() - 40)), Commit.class);
         HashMap<String, String> a = branchCommit.getfileToFileContent();
         HashMap<String, String> rmFile = branchCommit.getRmFile();
-//        if(branchName.equals("master")){
-//            System.out.println(a);
-//            System.out.println(current);
-//        }
         a.forEach((name, content) -> {
             try {
-                if(Objects.requireNonNull(plainFilenamesIn(CWD)).contains(name) && !sha1(readContentsAsString(join(CWD, name))).equals(content)){
+                if (Objects.requireNonNull(plainFilenamesIn(CWD)).contains(name) && !sha1(readContentsAsString(join(CWD, name))).equals(content)) {
                     System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                     exit(0);
-                }
-                else{
-                    extractFromBlob(join(Blob_DIR, content),join(CWD, name));
+                } else {
+                    extractFromBlob(join(Blob_DIR, content), join(CWD, name));
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         });
-        if(!rmFile.isEmpty()){
+        if (!rmFile.isEmpty()) {
             rmFile.forEach((name, content) -> {
-                if(Objects.requireNonNull(plainFilenamesIn(CWD)).contains(name)){
+                if (Objects.requireNonNull(plainFilenamesIn(CWD)).contains(name)) {
                     restrictedDelete(join(CWD, name));
                 }
             });
         }
     }
-    public static void branch(String branchName){
-        if(Objects.requireNonNull(plainFilenamesIn(BRANCH_DIR)).contains(branchName)){
+
+    public static void branch(String branchName) {
+        if (Objects.requireNonNull(plainFilenamesIn(BRANCH_DIR)).contains(branchName)) {
             System.out.println("A branch with that name already exists.");
             exit(0);
-        }
-        else{
+        } else {
             writeContents(join(BRANCH_DIR, branchName), readContentsAsString(HEAD));
         }
     }
-    public static void rmBranch(String branchName){
-        if(!Objects.requireNonNull(plainFilenamesIn(BRANCH_DIR)).contains(branchName)){
+
+    public static void rmBranch(String branchName) {
+        if (!Objects.requireNonNull(plainFilenamesIn(BRANCH_DIR)).contains(branchName)) {
             System.out.println("A branch with that name does not exist.");
-        }
-        else if(readContentsAsString(join(BRANCH_DIR, branchName)).equals(readContentsAsString(HEAD))){
+        } else if (readContentsAsString(join(BRANCH_DIR, branchName)).equals(readContentsAsString(HEAD))) {
             System.out.println("Cannot remove the current branch.");
-        }
-        else{
+        } else {
             restrictedDelete(join(BRANCH_DIR, branchName));
         }
     }
+
     /**/
     public static void reset(String commitId) throws IOException {
-        if(!Objects.requireNonNull(plainFilenamesIn(OBJECT_DIR)).contains(commitId)){
+        if (!Objects.requireNonNull(plainFilenamesIn(OBJECT_DIR)).contains(commitId)) {
             System.out.println("No commit with that id exists.");
-        }
-        else{
+        } else {
             Map<String, String> fileToName = readObject(join(OBJECT_DIR, commitId), Commit.class).getfileToFileContent();
-            for(String a: Objects.requireNonNull(plainFilenamesIn(CWD))){
-                if(!fileToName.containsKey(a)){
+            for (String a : Objects.requireNonNull(plainFilenamesIn(CWD))) {
+                if (!fileToName.containsKey(a)) {
                     restrictedDelete(join(CWD, a));
                 }
             }
-            for(String a: fileToName.keySet()){
+            for (String a : fileToName.keySet()) {
                 try {
-                    if(!Objects.requireNonNull(plainFilenamesIn(CWD)).contains(a)){
+                    if (!Objects.requireNonNull(plainFilenamesIn(CWD)).contains(a)) {
                         checkOutFileWithCommit(commitId, a);
-                    }
-                    else {
-                        if(!sha1(readContentsAsString(join(CWD, a))).equals(fileToName.get(a))){
+                    } else {
+                        if (!sha1(readContentsAsString(join(CWD, a))).equals(fileToName.get(a))) {
                             System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                             exit(0);
                         }
@@ -529,13 +487,12 @@ public class Repository {
                 }
             }
             updateCurrentBranchAndHead(commitId, returnCurrentBranch());
-            if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0){
+            if (Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0) {
                 Objects.requireNonNull(plainFilenamesIn(Stages)).forEach(a -> restrictedDelete(join(Stages, a)));
             }
         }
-    }/**/
-
-    public static void status(){
+    }
+    public static void status() {
         checkIfInitialized();
         System.out.println("=== Branches ===");
         soutBranches();
@@ -544,31 +501,27 @@ public class Repository {
         System.out.println();
         System.out.println("=== Modifications Not Staged For Commit ===");
         System.out.println();
-//        soutMod();
         System.out.println("=== Untracked Files ===");
-//        soutUntrackedFiles();
     }
     private static void soutStagedAndRmFiles() {
         System.out.println("=== Staged Files ===");
         List<String> rm = new ArrayList<>();
-        if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0){
-            for(File f: Objects.requireNonNull(Stages.listFiles())){
+        if (Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0) {
+            for (File f : Objects.requireNonNull(Stages.listFiles())) {
                 Stage t = readObject(f, Stage.class);
-                if(t.getFileStatus() == 0){
+                if (t.getFileStatus() == 0) {
                     System.out.println(t.getFileName());
-                }
-                else {
+                } else {
                     rm.add(t.getFileName());
                 }
             }
         }
         System.out.println();
         System.out.println("=== Removed Files ===");
-        if(rm.size() != 0){
+        if (rm.size() != 0) {
             rm.forEach(System.out::println);
         }
     }
-
     private static void soutBranches() {
         List<String> a = new ArrayList<>(Objects.requireNonNull(plainFilenamesIn(BRANCH_DIR)));
         System.out.println("*" + returnCurrentBranch());
@@ -576,7 +529,6 @@ public class Repository {
         Collections.sort(a);
         a.forEach(System.out::println);
     }
-
     public static void checkIfInitialized() {
         if (!GITLET_DIR.exists()) {
             System.out.println("Not in an initialized Gitlet directory.");
@@ -599,37 +551,31 @@ public class Repository {
             8.分割点有,给定分支有,当前分支无,保持缺席
             9.以不同方式更改的文件则处理冲突
         */
-        if(branchName.equals(returnCurrentBranch())){
+        if (branchName.equals(returnCurrentBranch())) {
             System.out.println("Cannot merge a branch with itself.");
             exit(0);
-        }
-        else if(!Objects.requireNonNull(plainFilenamesIn(BRANCH_DIR)).contains(branchName)){
+        } else if (!Objects.requireNonNull(plainFilenamesIn(BRANCH_DIR)).contains(branchName)) {
             System.out.println("A branch with that name does not exist.");
             exit(0);
-        }
-        else if(Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0){
+        } else if (Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0) {
             System.out.println("You have uncommitted changes.");
 //            exit(0);
-        }
-        else{
+        } else {
             String t = readContentsAsString(join(BRANCH_DIR, branchName)).substring(readContentsAsString(join(BRANCH_DIR, branchName)).length() - 40);
             String splitPoint = findSpiltPoint(getLatestCommit().getParents(), readObject(join(OBJECT_DIR, t), Commit.class).getParents());
-            if(splitPoint.equals(getLatestCommit().getCommitId())){
+            if (splitPoint.equals(getLatestCommit().getCommitId())) {
                 checkout("sss", branchName);
                 System.out.println("Current branch fast-forwarded.");
                 exit(0);
-            }
-            else if(splitPoint.equals(t)){
+            } else if (splitPoint.equals(t)) {
                 System.out.println("Given branch is an ancestor of the current branch.");
                 exit(0);
-            }
-            else {
+            } else {
                 dealWithMerge(getLatestCommit().getCommitId(), t, splitPoint);
                 commit(branchName, true);
             }
         }
     }
-
     private static void dealWithMerge(String currentCommit, String givenCommit, String splitPoint) throws IOException {
         // 拿到三种状态的文件进行比较
         HashMap<String, String> current = readObject(join(OBJECT_DIR, currentCommit), Commit.class).getTree();
@@ -649,85 +595,82 @@ public class Repository {
         findConflict(current, given, split);
     }
     private static void findJustInGiven(HashMap<String, String> split, HashMap<String, String> current, HashMap<String, String> given, String givenCommit, String currentCommit) throws IOException {
-        HashMap<String, String> rm = readObject(join(OBJECT_DIR, givenCommit),Commit.class).getRmFile();
-        rm.putAll(readObject(join(OBJECT_DIR, currentCommit),Commit.class).getRmFile());
-        for(String s: given.keySet()){
-            if(!split.containsKey(s) && !current.containsKey(s)){
-                if(plainFilenamesIn(CWD).contains(s)){
+        HashMap<String, String> rm = readObject(join(OBJECT_DIR, givenCommit), Commit.class).getRmFile();
+        rm.putAll(readObject(join(OBJECT_DIR, currentCommit), Commit.class).getRmFile());
+        for (String s : given.keySet()) {
+            if (!split.containsKey(s) && !current.containsKey(s)) {
+                if (plainFilenamesIn(CWD).contains(s)) {
                     System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                     exit(0);
                 }
-                checkout("checkout", givenCommit,"--", s);
-                addIntoStage(s,given.get(s),0);
+                checkout("checkout", givenCommit, "--", s);
+                addIntoStage(s, given.get(s), 0);
             }
         }
-        if(!rm.isEmpty()){
-            for(String rms: rm.keySet()){
+        if (!rm.isEmpty()) {
+            for (String rms : rm.keySet()) {
                 restrictedDelete(join(CWD, rms));
             }
         }
     }
-
     private static void findJustInSplit(HashMap<String, String> split, HashMap<String, String> current, HashMap<String, String> given, String givenCommit) throws IOException {
-        for(String s: split.keySet()){
-            if(!current.containsKey(s)){
-                if(!given.containsKey(s)){
-                    if(plainFilenamesIn(CWD).contains(s)){
+        for (String s : split.keySet()) {
+            if (!current.containsKey(s)) {
+                if (!given.containsKey(s)) {
+                    if (plainFilenamesIn(CWD).contains(s)) {
                         System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                         exit(0);
                     }
                     rm(s);
                 }
-            }
-            else if(split.get(s).equals(current.get(s))){
-                if(!given.containsKey(s)){
+            } else if (split.get(s).equals(current.get(s))) {
+                if (!given.containsKey(s)) {
                     rm(s);
                 }
             }
         }
     }
     private static void findConflict(HashMap<String, String> current, HashMap<String, String> given, HashMap<String, String> split) throws IOException {
-        for(String fileName: Objects.requireNonNull(plainFilenamesIn(CWD))){
+        for (String fileName : Objects.requireNonNull(plainFilenamesIn(CWD))) {
             Boolean flag = false;
-            if(split.containsKey(fileName) || split == null){
-                if(!given.containsKey(fileName)|| !current.containsKey(fileName)){
+            if (split.containsKey(fileName) || split == null) {
+                if (!given.containsKey(fileName) || !current.containsKey(fileName)) {
                     flag = true;
-                }
-                else{
-                    if(!given.get(fileName).equals(split.get(fileName))){
+                } else {
+                    if (!given.get(fileName).equals(split.get(fileName))) {
                         flag = true;
                     }
                 }
-                if(flag){
+                if (flag) {
                     System.out.println("Encountered a merge conflict.");
                     String content = "<<<<<<< HEAD" + "\n";
                     // 当前分支有 给定分支有/ 当前分支有 给定分支删 /当前分支删 给定分支有
-                    if(plainFilenamesIn(CWD).contains(fileName)){
+                    if (plainFilenamesIn(CWD).contains(fileName)) {
                         content += readContentsAsString(join(CWD, fileName));
                     }
                     content += "=======" + "\n";
-                    if(given.containsKey(fileName)){
+                    if (given.containsKey(fileName)) {
                         extractFromBlob(join(Blob_DIR, given.get(fileName)), join(CWD, "temp.txt"));
                         content += readContentsAsString(join(CWD, "temp.txt"));
                         restrictedDelete(join(CWD, "temp.txt"));
                     }
-                    content +=  ">>>>>>>" + "\n";
+                    content += ">>>>>>>" + "\n";
                     writeContents(join(CWD, fileName), content);
                 }
             }
         }
     }
-    public static String findSpiltPoint(List<String> current, List<String> give){
+    public static String findSpiltPoint(List<String> current, List<String> give) {
         int flag = -999999;
-        Map<String,Integer> currents = returnContentWithIndex(current);
-        Map<String,Integer> given = returnContentWithIndex(give);
+        Map<String, Integer> currents = returnContentWithIndex(current);
+        Map<String, Integer> given = returnContentWithIndex(give);
 //        System.out.println("currents:" + currents);
 //        System.out.println("given:" + given);
         String returnString = null;
-        for(String s: currents.keySet()){
-            if(given.containsKey(s)){
-                if(Objects.equals(currents.get(s), given.get(s))){
-                    if(currents.get(s) > flag){//找到分割点
+        for (String s : currents.keySet()) {
+            if (given.containsKey(s)) {
+                if (Objects.equals(currents.get(s), given.get(s))) {
+                    if (currents.get(s) > flag) {//找到分割点
                         returnString = s;
                         flag = currents.get(s);
                     }
@@ -737,7 +680,7 @@ public class Repository {
 //        System.out.println("split:" + returnString);
         return returnString;
     }
-    public static Map<String, Integer> returnContentWithIndex(List<String> process){
+    public static Map<String, Integer> returnContentWithIndex(List<String> process) {
         return process.stream().collect(Collectors.toMap(Function.identity(), process::indexOf));
     }
 }
