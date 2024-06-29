@@ -33,6 +33,15 @@ public class Commit implements Serializable {
     private HashMap<String, String> tree = new HashMap<>();
     private boolean MergeFlag;
     private Date currentTime;
+    private HashMap<String, String> rmFile = new HashMap<>();
+
+    public HashMap<String, String> getRmFile() {
+        return rmFile;
+    }
+
+    public void setRmFile(String fileName, String fileContent) {
+        this.rmFile.put(fileName, fileContent);
+    }
 
     public Commit() {
     }
@@ -110,10 +119,11 @@ public class Commit implements Serializable {
         this.timestamp = timestamp;
     }
 
-    public void setParents(){
+    public void setParents(HashMap<String, String> rm){
         List<String> parents = Repository.getLatestCommit().getParents();
         parents.add(this.commitId);
         this.parents = parents;
+        this.rmFile.putAll(rm);
     }
     public void setParens(){
         this.parents.add(this.commitId);
