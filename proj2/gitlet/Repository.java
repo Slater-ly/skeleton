@@ -47,17 +47,6 @@ public class Repository {
     public static final File HEAD = join(GITLET_DIR, "HEAD");
     public static final File Stages = join(GITLET_DIR, "stage");
     public static final File master = join(BRANCH_DIR, "master");
-    /*
-     *   .gitlet
-     *      |--objects
-     *      |     |--commit and blob and tree
-     *      |--branch
-     *          |-- master and other branch
-     *      |--HEAD
-     *      |--stage
-     */
-
-
     /**
      * 将指定文件的内容压缩后存储到Blob文件中。
      *
@@ -348,8 +337,8 @@ public class Repository {
             System.out.println("Merge: " + commit.getMergeParent().get(1).substring(0, 7) + " " + commit.getMergeParent().get(0).substring(0, 7));
         }
         System.out.println("Date: " + commit.getTimestamp());
-            System.out.println("NameToContent:" + commit.getfileToFileContent());
-            System.out.println("rmFile:" + commit.getRmFile());
+//            System.out.println("NameToContent:" + commit.getfileToFileContent());
+//            System.out.println("rmFile:" + commit.getRmFile());
         System.out.println(commit.getMessage());
         System.out.println();
     }
@@ -367,10 +356,26 @@ public class Repository {
                     System.out.println("Incorrect operands.");
                     System.exit(0);
                 }
-                checkOutFileWithCommit(args[1], args[3]);
+                checkOutFileWithCommit(getRealCommit(args[1]), args[3]);
                 break;
         }
     }
+
+    private static String getRealCommit(String arg) {
+        String re = null;
+        if(arg.length() == 8){
+            for(String s: Objects.requireNonNull(plainFilenamesIn(OBJECT_DIR))){
+                if(s.startsWith(arg)){
+                    re = s;
+                }
+            }
+        }
+        else {
+            re = arg;
+        }
+        return re;
+    }
+
     private static void checkOutFileWithCommit(String commitId, String fileName) throws IOException {
         if (!Objects.requireNonNull(plainFilenamesIn(OBJECT_DIR)).contains(commitId)) {
             System.out.println("No commit with that id exists.");
@@ -577,12 +582,6 @@ public class Repository {
         HashMap<String, String> current = readObject(join(OBJECT_DIR, currentCommit), Commit.class).getTree();
         HashMap<String, String> given = readObject(join(OBJECT_DIR, givenCommit), Commit.class).getTree();
         HashMap<String, String> split = readObject(join(OBJECT_DIR, splitPoint), Commit.class).getTree();
-//        System.out.println("current:" + currentCommit);
-//        System.out.println("given:" + givenCommit);
-//        System.out.println("split:" + splitPoint);
-//        System.out.println("current:" + current);
-//        System.out.println("given:" + given);
-//        System.out.println("split:" + split);
         // 在分割点里有的文件
         findJustInSplit(split, current, given, givenCommit);
         // 只在给定分支
@@ -675,8 +674,7 @@ public class Repository {
         int flag = -999999;
         Map<String, Integer> currents = returnContentWithIndex(current);
         Map<String, Integer> given = returnContentWithIndex(give);
-//        System.out.println("currents:" + currents);
-//        System.out.println("given:" + given);
+
         String returnString = null;
         for (String s : currents.keySet()) {
             if (given.containsKey(s)) {
@@ -688,7 +686,6 @@ public class Repository {
                 }
             }
         }
-//        System.out.println("split:" + returnString);
         return returnString;
     }
     public static Map<String, Integer> returnContentWithIndex(List<String> process) {
