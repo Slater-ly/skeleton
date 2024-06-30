@@ -348,8 +348,8 @@ public class Repository {
             System.out.println("Merge: " + commit.getMergeParent().get(1).substring(0, 7) + " " + commit.getMergeParent().get(0).substring(0, 7));
         }
         System.out.println("Date: " + commit.getTimestamp());
-//            System.out.println("NameToContent:" + commit.getfileToFileContent());
-//            System.out.println("rmFile:" + commit.getRmFile());
+            System.out.println("NameToContent:" + commit.getfileToFileContent());
+            System.out.println("rmFile:" + commit.getRmFile());
         System.out.println(commit.getMessage());
         System.out.println();
     }
@@ -553,10 +553,8 @@ public class Repository {
         */
         if (branchName.equals(returnCurrentBranch())) {
             System.out.println("Cannot merge a branch with itself.");
-            exit(0);
         } else if (!Objects.requireNonNull(plainFilenamesIn(BRANCH_DIR)).contains(branchName)) {
             System.out.println("A branch with that name does not exist.");
-            exit(0);
         } else if (Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0) {
             System.out.println("You have uncommitted changes.");
 //            exit(0);
@@ -566,10 +564,8 @@ public class Repository {
             if (splitPoint.equals(getLatestCommit().getCommitId())) {
                 checkout("sss", branchName);
                 System.out.println("Current branch fast-forwarded.");
-                exit(0);
             } else if (splitPoint.equals(t)) {
                 System.out.println("Given branch is an ancestor of the current branch.");
-                exit(0);
             } else {
                 dealWithMerge(getLatestCommit().getCommitId(), t, splitPoint);
                 commit(branchName, true);
@@ -597,21 +593,32 @@ public class Repository {
     private static void findJustInGiven(HashMap<String, String> split, HashMap<String, String> current, HashMap<String, String> given, String givenCommit, String currentCommit) throws IOException {
         HashMap<String, String> rm = readObject(join(OBJECT_DIR, givenCommit), Commit.class).getRmFile();
         rm.putAll(readObject(join(OBJECT_DIR, currentCommit), Commit.class).getRmFile());
+        split.keySet().forEach(rm::remove);
         for (String s : given.keySet()) {
-            if (!split.containsKey(s) && !current.containsKey(s)) {
-                if (plainFilenamesIn(CWD).contains(s)) {
+            // given新增的文件
+            if ((!split.containsKey(s) && !current.containsKey(s))) {
+                if (plainFilenamesIn(CWD).contains(s) || given.get(s).equals(current.get(s))) {
                     System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                    if (Objects.requireNonNull(plainFilenamesIn(Stages)).size() != 0) {
+                        for (File f : Objects.requireNonNull(Stages.listFiles())) {
+                            restrictedDelete(f);
+                        }
+                    }
                     exit(0);
                 }
                 checkout("checkout", givenCommit, "--", s);
                 addIntoStage(s, given.get(s), 0);
             }
-        }
-        if (!rm.isEmpty()) {
-            for (String rms : rm.keySet()) {
-                restrictedDelete(join(CWD, rms));
+            else{
+                if(split.containsKey(s) && current.containsKey(s)){
+                    if(current.get(s).equals(split.get(s)) && !given.get(s).equals(split.get(s))){
+                        checkout("checkout", givenCommit, "--", s);
+                        addIntoStage(s, given.get(s), 0);
+                    }
+                }
             }
         }
+        rm.keySet().forEach(s -> restrictedDelete(join(CWD, s)));
     }
     private static void findJustInSplit(HashMap<String, String> split, HashMap<String, String> current, HashMap<String, String> given, String givenCommit) throws IOException {
         for (String s : split.keySet()) {
@@ -619,9 +626,12 @@ public class Repository {
                 if (!given.containsKey(s)) {
                     if (plainFilenamesIn(CWD).contains(s)) {
                         System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+
                         exit(0);
                     }
-                    rm(s);
+                    if(!getLatestCommit().getRmFile().containsKey(s)){
+                        rm(s);
+                    }
                 }
             } else if (split.get(s).equals(current.get(s))) {
                 if (!given.containsKey(s)) {
@@ -631,13 +641,14 @@ public class Repository {
         }
     }
     private static void findConflict(HashMap<String, String> current, HashMap<String, String> given, HashMap<String, String> split) throws IOException {
+        // g删c改/c删g改/g改c改且内容不同
         for (String fileName : Objects.requireNonNull(plainFilenamesIn(CWD))) {
             Boolean flag = false;
             if (split.containsKey(fileName) || split == null) {
-                if (!given.containsKey(fileName) || !current.containsKey(fileName)) {
+                if ((!given.containsKey(fileName) && !current.get(fileName).equals(split.get(fileName))) || (!current.containsKey(fileName) && !given.get(fileName).equals(split.get(fileName)))) {
                     flag = true;
                 } else {
-                    if (!given.get(fileName).equals(split.get(fileName))) {
+                    if (!given.get(fileName).equals(split.get(fileName)) && (!current.get(fileName).equals(split.get(fileName)) || !current.get(fileName).equals(split.get(fileName)))) {
                         flag = true;
                     }
                 }
